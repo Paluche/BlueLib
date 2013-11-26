@@ -16,7 +16,9 @@ Hubert Lefevre <hubelefevre@gmail.com>
 
 ###### Copyright BlueZ
 Copyright (C) 2000-2001  Qualcomm Incorporated
+
 Copyright (C) 2002-2003  Maxim Krasnyansky <maxk@qualcomm.com>
+
 Copyright (C) 2002-2010  Marcel Holtmann <marcel@holtmann.org>
 
 Libraries needed on Ubuntu
@@ -41,4 +43,4 @@ Problem to connect with your device in security level medium/high
 -----------------------------------------------------------------
 
 To repair a Bluetooth device:
-sudo bluez-simple-agent hci0 <MAC ADRESS of the device in format XX:XX:XX:XX:XX:XX> repair
+sudo bluez-simple-agent hci0 [MAC ADRESS of the device in format XX:XX:XX:XX:XX:XX] repair
