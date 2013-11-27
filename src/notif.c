@@ -23,8 +23,8 @@
 #include "bluelib.h"
 
 #include <malloc.h>
-#include <bluetooth/uuid.h>
 
+#include "uuid.h"
 #include "att.h"
 #include "gatt_def.h"
 

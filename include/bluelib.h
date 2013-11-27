@@ -24,12 +24,12 @@
 #define _BLUELIB_H_
 
 #include <stdint.h>
-#include <bluetooth/uuid.h>
 #include <glib.h>
 #include <errno.h>
 
 // Bluez
 #include "gattrib.h"
+#include "uuid.h"
 #include "att.h"
 
 // BlueLib

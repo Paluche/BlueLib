@@ -32,8 +32,8 @@
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 #include <bluetooth/sdp.h>
-#include <bluetooth/uuid.h>
 
+#include "uuid.h"
 #include "btio.h"
 #include "att.h"
 #include "gattrib.h"

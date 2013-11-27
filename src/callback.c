@@ -26,16 +26,14 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include <bluetooth/uuid.h>
-
-#include "bluelib_gatt.h"
-#include "conn_state.h"
-
+#include "uuid.h"
 #include "gattrib.h"
 #include "att.h"
 #include "gatt.h"
 
 #include "bluelib.h"
+#include "bluelib_gatt.h"
+#include "conn_state.h"
 #include "callback.h"
 #include "gatt_def.h"
 

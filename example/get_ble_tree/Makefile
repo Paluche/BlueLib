@@ -11,7 +11,7 @@ all: get_ble_tree
 
 get_ble_tree: get_ble_tree.o \
               bluelib.o bluelib_gatt.o callback.o conn_state.o notif.o \
-							att.o btio.o gatt.o gattrib.o utils.o
+							att.o btio.o gatt.o gattrib.o utils.o uuid.o
 
 %.o: ../../src/%.c
 	$(COMPILE.c) $(OUTPUT_OPTION) $<

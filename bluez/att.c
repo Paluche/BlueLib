@@ -34,7 +34,7 @@
 
 #include <glib.h>
 
-#include <bluetooth/uuid.h>
+#include "uuid.h"
 #include "att.h"
 
 const char *att_ecode2str(uint8_t status)
