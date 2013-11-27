@@ -65,6 +65,7 @@ int bl_add_notif_by_char(bl_char_t *start_bl_char, bl_char_t *end_bl_char,
 {
   GError *gerr = NULL;
   uint8_t value;
+  bl_desc_t *client_char_conf = NULL;
   if (gerr)
    goto gerror;
 
@@ -76,8 +77,8 @@ int bl_add_notif_by_char(bl_char_t *start_bl_char, bl_char_t *end_bl_char,
     goto error;
 
   // Register to the notification
-  bl_desc_t *client_char_conf = bl_get_desc_by_char(start_bl_char,
-      end_bl_char, bl_primary, GATT_CLIENT_CHARAC_CFG_UUID_STR, &gerr);
+  client_char_conf = bl_get_desc_by_char(start_bl_char, end_bl_char,
+      bl_primary, GATT_CLIENT_CHARAC_CFG_UUID_STR, &gerr);
 
   if (gerr)
     goto gerror;

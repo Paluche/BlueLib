@@ -147,12 +147,12 @@ g_mutex_lock(bluelib_mutex)
 
 #define ASSERT_CONNECTED                                \
   if (get_conn_state() != STATE_CONNECTED) {            \
-    printf("Error: Not connected\n");                          \
+    printf("Error: Not connected\n");                   \
     ret = BL_DISCONNECTED_ERROR;                        \
     goto exit;                                          \
   }                                                     \
   if (!is_event_loop_running()) {                       \
-    printf("Error: Not connected\n");                          \
+    printf("Error: Not connected\n");                   \
     ret = BL_DISCONNECTED_ERROR;                        \
     goto exit;                                          \
   }
@@ -218,13 +218,13 @@ int bl_connect(char *mac_dst, char *dst_type)
   if (get_conn_state() != STATE_DISCONNECTED) {
     printf("Error: Already connected to a device\n");
     ret = BL_ALREADY_CONNECTED_ERROR;
-    goto exit;
+    goto error;
   }
 
   if (!mac_dst) {
     printf("Error: Remote Bluetooth address required\n");
     ret = EINVAL;
-    goto exit;
+    goto error;
   }
 
   // Check if the address MAC is correct
@@ -285,7 +285,7 @@ int bl_connect(char *mac_dst, char *dst_type)
     stop_event_loop();
     goto error;
   }
-exit:
+
   current_mac = mac_dst;
   ret = BL_NO_ERROR;
   g_mutex_unlock(bluelib_mutex);

@@ -2,6 +2,7 @@ CFLAGS += -I../../include
 CFLAGS += -I../../bluez
 CFLAGS += $(shell pkg-config --cflags glib-2.0)
 CFLAGS += -std=gnu99
+CFLAGS += -Wall
 
 LDLIBS += $(shell pkg-config --libs glib-2.0)
 LDLIBS += -lbluetooth

@@ -155,7 +155,7 @@ int main(int argc, char **argv)
   if (!file)
     return -1;
   // Initialisation
-  ret_int = bl_init(NULL, NULL, NULL, 0, TEST_SEC_LEVEL);
+  bl_init(NULL, NULL, NULL, 0, TEST_SEC_LEVEL);
 
   do {
     ret_int = bl_connect(mac, NULL);
@@ -244,6 +244,6 @@ disconnect:
   if (file)
     fclose(file);
   printf("Disconnecting\n");
-  ret_int = bl_disconnect();
+  bl_disconnect();
   return 0;
 }
