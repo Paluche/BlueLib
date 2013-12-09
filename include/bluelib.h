@@ -301,6 +301,7 @@ int bl_change_mtu(int value);
  *  ATT_OP_HANDLE_NOTIFY for a notification
  *  ATT_OP_HANDLE_IND    for a indication
  */
+#define NOTIF_PDU_HEADER_SIZE 3
 
 // Add a notification by UUID.
 int bl_add_notif(char *uuid_str, bl_primary_t *bl_primary,
