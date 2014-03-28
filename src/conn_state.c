@@ -26,17 +26,16 @@
 #include "callback.h"
 #include <stdio.h>
 
-static conn_state_t conn_state = STATE_DISCONNECTED;
 
-void set_conn_state(conn_state_t state)
+void set_conn_state(bl_ctx_t *bl_ctx, conn_state_t state)
 {
-  printf("[CONN STATE] %d => %d\n", conn_state, state);
-  conn_state = state;
+  printf("[CONN STATE] %d => %d\n", bl_ctx->conn_state, state);
+  bl_ctx->conn_state = state;
   if ((state == STATE_DISCONNECTED) && is_event_loop_running())
     stop_event_loop();
 }
 
-conn_state_t get_conn_state(void)
+conn_state_t get_conn_state(bl_ctx_t *bl_ctx)
 {
-  return conn_state;
+  return bl_ctx->conn_state;
 }

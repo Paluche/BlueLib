@@ -24,3 +24,4 @@ clean:
 
 distclean: clean
 	-rm -f get_ble_tree
+include ../../ble.mk

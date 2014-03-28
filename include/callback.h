@@ -25,33 +25,47 @@
 
 #include <stdint.h>
 
+typedef struct {
+    dev_ctx_t *dev_ctx;
+    GMutex     pending_cb_mtx;
+    uint16_t   end_handle_cb; // Used in only some callbacks.
+
+    // Return value from the callback functions
+     void     *cb_ret_pointer;
+     int       cb_ret_val;
+     char      cb_ret_msg[1024];
+} cb_ctx_t;
+
+// Initializes the structure you must give to every callback in user_data
+void init_cb_ctx(cb_ctx_t *cb_ctx, bl_ctx_t *bl_ctx);
+
 // Event loop
 int  start_event_loop(GError **gerr);
 void stop_event_loop(void);
 int  is_event_loop_running(void);
 
 // Block the main thread while waiting for the callback
-int wait_for_cb(void **ret_pointer, GError **gerr);
+int wait_for_cb(cb_ctx_t *cb_ctx, void **ret_pointer, GError **gerr);
 
 // Shared variable
 extern uint16_t end_handle_cb;
 // Callbacks
 void connect_cb(GIOChannel *io, GError *err, gpointer user_data);
 void primary_all_cb(GSList *services, guint8 status,
-    gpointer user_data);
+                    gpointer user_data);
 void primary_by_uuid_cb(GSList *ranges, guint8 status,
-    gpointer user_data);
+                        gpointer user_data);
 void included_cb(GSList *includes, guint8 status, gpointer user_data);
 void char_by_uuid_cb(GSList *characteristics, guint8 status,
-    gpointer user_data);
+                     gpointer user_data);
 void char_desc_cb(guint8 status, const guint8 *pdu, guint16 plen,
-    gpointer user_data);
+                  gpointer user_data);
 void read_by_hnd_cb(guint8 status, const guint8 *pdu, guint16 plen,
-    gpointer user_data);
+                    gpointer user_data);
 void read_by_uuid_cb(guint8 status, const guint8 *pdu,
-    guint16 plen, gpointer user_data);
+                     guint16 plen, gpointer user_data);
 void write_req_cb(guint8 status, const guint8 *pdu, guint16 plen,
-    gpointer user_data);
+                  gpointer user_data);
 void exchange_mtu_cb(guint8 status, const guint8 *pdu, guint16 plen,
-    gpointer user_data);
+                     gpointer user_data);
 #endif
