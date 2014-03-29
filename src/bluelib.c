@@ -255,7 +255,7 @@ int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
         goto error;
     }
 
-    g_io_add_watch(dev_ctx->iochannel, G_IO_HUP, channel_watcher, NULL);
+    g_io_add_watch(dev_ctx->iochannel, G_IO_HUP, channel_watcher, dev_ctx);
 
     ret = wait_for_cb(&cb_ctx, NULL, NULL);
     if (ret) {
@@ -324,14 +324,14 @@ GSList *bl_get_all_primary(dev_ctx_t *dev_ctx, char *uuid_str, GError **gerr)
         bt_uuid_t uuid;
         bt_string_to_uuid(&uuid, uuid_str);
         if (!gatt_discover_primary(dev_ctx->attrib, &uuid, primary_by_uuid_cb,
-                                   NULL)) {
+                                   &cb_ctx)) {
             GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                       "Unable to send request\n");
             PROPAGATE_ERROR;
             goto exit;
         }
     } else if (!gatt_discover_primary(dev_ctx->attrib, NULL, primary_all_cb,
-                                      NULL)) {
+                                      &cb_ctx)) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                   "Unable to send request\n");
         PROPAGATE_ERROR;
@@ -406,7 +406,8 @@ GSList *bl_get_included(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
         goto exit;
 
     if (!gatt_find_included(dev_ctx->attrib, start_handle,
-                                              end_handle, included_cb, NULL))
+                                              end_handle, included_cb,
+                                              &cb_ctx))
     {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                   "Unable to send request\n");
@@ -451,7 +452,7 @@ GSList *bl_get_all_char(dev_ctx_t *dev_ctx, char *uuid_str,
     }
 
     if (!gatt_discover_char(dev_ctx->attrib, start_handle, end_handle, puuid,
-                            char_by_uuid_cb, NULL)) {
+                            char_by_uuid_cb, &cb_ctx)) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                   "Unable to send request\n");
         PROPAGATE_ERROR;
@@ -548,7 +549,7 @@ GSList *bl_get_all_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
         goto exit;
     }
     if (!gatt_discover_char_desc(dev_ctx->attrib, start_handle, end_handle,
-                                 char_desc_cb, NULL)) {
+                                 char_desc_cb, &cb_ctx)) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                   "Unable to send request\n");
         PROPAGATE_ERROR;
@@ -622,7 +623,7 @@ bl_desc_t *bl_get_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
                                bl_primary_t *bl_primary, char *desc_uuid_str,
                                GError **gerr)
 {
-    *gerr = NULL; //FIXME CLEAR GERR ?
+    CLEAR_GERROR;
     GSList *bl_desc_list = bl_get_all_desc_by_char(dev_ctx, start_bl_char,
                                                    end_bl_char, bl_primary,
                                                    gerr);
@@ -721,7 +722,7 @@ GSList *bl_read_char_all(dev_ctx_t *dev_ctx, char *uuid_str,
 
     if (!gatt_read_char_by_uuid(dev_ctx->attrib, start_handle, end_handle,
                                 &uuid,
-                                read_by_uuid_cb, NULL)) {
+                                read_by_uuid_cb, &cb_ctx)) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                   "Unable to send request\n");
         PROPAGATE_ERROR;
@@ -913,7 +914,7 @@ static int write_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle, uint8_t *value,
         ret = wait_for_cb(&cb_ctx, NULL, NULL);
     } else {
         if (!gatt_write_cmd(dev_ctx->attrib, handle, value, size, NULL,
-                            NULL)) {
+                            &cb_ctx)) {
             printf("Error: Unable to send write cmd\n");
             ret = BL_SEND_REQUEST_ERROR;
             goto exit;
@@ -1093,7 +1094,7 @@ int bl_change_mtu(dev_ctx_t *dev_ctx, int value)
         goto exit;
     }
     gatt_exchange_mtu(dev_ctx->attrib, dev_ctx->opt_mtu, exchange_mtu_cb,
-                      NULL);
+                      &cb_ctx);
 
     ret = wait_for_cb(&cb_ctx, NULL, NULL);
 exit:
