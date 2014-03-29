@@ -23,8 +23,9 @@
 
 #ifndef _UTILS_H_
 #define _UTILS_H_
-GIOChannel *gatt_connect(const char *src, const char *dst, const char *dst_type,
-                         const char *sec_level,  int psm, int mtu, BtIOConnect connect_cb,
+GIOChannel *gatt_connect(const char *src, const char *dst,
+                         const char *dst_type, const char *sec_level, int psm,
+                         int mtu, BtIOConnect connect_cb, gpointer user_data,
                          GError **gerr);
 
 size_t gatt_attr_data_from_string(const char *str, uint8_t **data);

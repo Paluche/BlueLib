@@ -213,21 +213,23 @@ void connect_cb(GIOChannel *io, GError *err, gpointer user_data)
 {
     cb_ctx_t *cb_ctx = user_data;
 
-    printf_dbg("[CB] IN connect_cb\n");
+    printf_dbg("IN connect_cb\n");
     if (err) {
         set_conn_state(cb_ctx->dev_ctx, STATE_DISCONNECTED);
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
         sprintf(cb_ctx->cb_ret_msg, "%s", err->message);
         goto error;
     }
+    printf("BLA 0\n");
     cb_ctx->dev_ctx->attrib = g_attrib_new(cb_ctx->dev_ctx->iochannel);
+    printf("BLA 1\n");
     set_conn_state(cb_ctx->dev_ctx, STATE_CONNECTED);
     strcpy(cb_ctx->cb_ret_msg, "Connection successful\n");
     cb_ctx->cb_ret_val = BL_NO_ERROR;
 
 error:
     g_mutex_unlock(&cb_ctx->pending_cb_mtx);
-    printf_dbg("[CB] OUT connect_cb\n");
+    printf_dbg("OUT connect_cb\n");
 }
 
 void primary_all_cb(GSList *services, guint8 status,
@@ -238,7 +240,7 @@ void primary_all_cb(GSList *services, guint8 status,
     GSList *l = NULL;
     GSList *bl_primary_list = NULL;
 
-    printf_dbg("[CB] IN Primary_all_cb\n");
+    printf_dbg("IN Primary_all_cb\n");
     if (status) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
         sprintf(cb_ctx->cb_ret_msg, "Primary callback: Failure: %s\n",
@@ -255,7 +257,8 @@ void primary_all_cb(GSList *services, guint8 status,
     for (l = services; l; l = l->next) {
         struct gatt_primary *prim = l->data;
         bl_primary_t *bl_primary = bl_primary_new(prim->uuid, prim->changed,
-                                                  prim->range.start, prim->range.end);
+                                                  prim->range.start,
+                                                  prim->range.end);
 
         g_free(prim);
 
@@ -289,7 +292,7 @@ exit:
     if (l)
         g_slist_free(l);
     g_mutex_unlock(&cb_ctx->pending_cb_mtx);
-    printf_dbg("[CB] OUT primary_all_cb\n");
+    printf_dbg("OUT primary_all_cb\n");
 }
 
 void primary_by_uuid_cb(GSList *ranges, guint8 status,
@@ -299,7 +302,7 @@ void primary_by_uuid_cb(GSList *ranges, guint8 status,
     GSList   *bl_primary_list = NULL;
     cb_ctx_t *cb_ctx = user_data;
 
-    printf_dbg("[CB] IN primary_by_uuid_cb\n");
+    printf_dbg("IN primary_by_uuid_cb\n");
     if (status) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
         sprintf(cb_ctx->cb_ret_msg, "Primary by UUID callback: Failure: %s\n",
@@ -345,7 +348,7 @@ error:
         bl_primary_list_free(bl_primary_list);
 exit:
     g_mutex_unlock(&cb_ctx->pending_cb_mtx);
-    printf_dbg("[CB] OUT primary_by_uuid_cb\n");
+    printf_dbg("OUT primary_by_uuid_cb\n");
 }
 
 void included_cb(GSList *includes, guint8 status, gpointer user_data)
@@ -354,7 +357,7 @@ void included_cb(GSList *includes, guint8 status, gpointer user_data)
     GSList   *bl_included_list = NULL;
     cb_ctx_t *cb_ctx           = user_data;
 
-    printf_dbg("[CB] IN included_cb\n");
+    printf_dbg("IN included_cb\n");
     if (status) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
         sprintf(cb_ctx->cb_ret_msg, "Included callback: Failure: %s\n",
@@ -401,7 +404,7 @@ exit:
     if (l)
         g_slist_free(l);
     g_mutex_unlock(&cb_ctx->pending_cb_mtx);
-    printf_dbg("[CB] OUT included_cb\n");
+    printf_dbg("OUT included_cb\n");
 }
 
 void char_by_uuid_cb(GSList *characteristics, guint8 status,
@@ -411,7 +414,7 @@ void char_by_uuid_cb(GSList *characteristics, guint8 status,
     GSList   *bl_char_list = NULL;
     cb_ctx_t *cb_ctx       = user_data;
 
-    printf_dbg("[CB] IN char_by_uuid\n");
+    printf_dbg(" IN char_by_uuid\n");
     if (status) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
         sprintf(cb_ctx->cb_ret_msg, "Characteristic by UUID callback: Failure: %s\n",
@@ -457,7 +460,7 @@ exit:
     if (l)
         g_slist_free(l);
     g_mutex_unlock(&cb_ctx->pending_cb_mtx);
-    printf_dbg("[CB] OUT char_by_uuid\n");
+    printf_dbg("OUT char_by_uuid\n");
 }
 
 static GSList *bl_desc_list = NULL;
@@ -471,7 +474,7 @@ void char_desc_cb(guint8 status, const guint8 *pdu, guint16 plen,
     uint8_t              *value;
     cb_ctx_t             *cb_ctx = user_data;
 
-    printf_dbg("[CB] IN char_desc_cb\n");
+    printf_dbg("IN char_desc_cb\n");
     if (status) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
         sprintf(cb_ctx->cb_ret_msg, "Characteristic descriptor "

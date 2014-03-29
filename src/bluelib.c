@@ -235,10 +235,10 @@ int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
     printf("Attempting to connect to %s\n", dev_ctx->opt_dst);
     set_conn_state(dev_ctx, STATE_CONNECTING);
     dev_ctx->iochannel = gatt_connect(dev_ctx->opt_src, dev_ctx->opt_dst,
-                                     dev_ctx->opt_dst_type,
-                                     dev_ctx->opt_sec_level,
-                                     dev_ctx->opt_psm, dev_ctx->opt_mtu,
-                                     connect_cb, &gerr);
+                                      dev_ctx->opt_dst_type,
+                                      dev_ctx->opt_sec_level,
+                                      dev_ctx->opt_psm, dev_ctx->opt_mtu,
+                                      connect_cb, &cb_ctx, &gerr);
 
     if (gerr) {
         printf("Error <%d %s>\n", gerr->code, gerr->message);
