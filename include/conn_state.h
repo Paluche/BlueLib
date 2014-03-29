@@ -25,6 +25,6 @@
 // Here are only the function private to BlueLib library.
 // The rest is public and is defined in bluelib.h
 #include "bluelib.h"
-void set_conn_state(bl_ctx_t *bl_ctx, conn_state_t state);
+void set_conn_state(dev_ctx_t *dev_ctx, conn_state_t state);
 
 #endif

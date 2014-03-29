@@ -27,15 +27,13 @@
 #include <stdio.h>
 
 
-void set_conn_state(bl_ctx_t *bl_ctx, conn_state_t state)
+void set_conn_state(dev_ctx_t *dev_ctx, conn_state_t state)
 {
-  printf("[CONN STATE] %d => %d\n", bl_ctx->conn_state, state);
-  bl_ctx->conn_state = state;
-  if ((state == STATE_DISCONNECTED) && is_event_loop_running())
-    stop_event_loop();
+  printf("[CONN STATE] %d => %d\n", dev_ctx->conn_state, state);
+  dev_ctx->conn_state = state;
 }
 
-conn_state_t get_conn_state(bl_ctx_t *bl_ctx)
+conn_state_t get_conn_state(dev_ctx_t *dev_ctx)
 {
-  return bl_ctx->conn_state;
+  return dev_ctx->conn_state;
 }

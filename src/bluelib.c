@@ -79,18 +79,19 @@ GQuark bl_error_domain(void)
     }
 
 /******************************** Asserts **********************************/
-static inline int handle_assert(uint16_t *start_handle, uint16_t *end_handle,
+static inline int handle_assert(cb_ctx_t *cb_ctx, uint16_t *start_handle,
+                                uint16_t *end_handle,
                                 bl_primary_t *bl_primary, GError **gerr)
 {
     // Default range
-    *start_handle = 0x0001;
-    *end_handle   = 0xffff;
-    end_handle_cb = 0xffff;
+    *start_handle         = 0x0001;
+    *end_handle           = 0xffff;
+    cb_ctx->end_handle_cb = 0xffff;
 
     if (bl_primary != NULL) {
-        *start_handle = bl_primary->start_handle;
-        *end_handle   = bl_primary->end_handle;
-        end_handle_cb = bl_primary->end_handle;
+        *start_handle         = bl_primary->start_handle;
+        *end_handle           = bl_primary->end_handle;
+        cb_ctx->end_handle_cb = bl_primary->end_handle;
     }
 
     if (start_handle > end_handle) {
@@ -110,12 +111,14 @@ static inline int handle_assert(uint16_t *start_handle, uint16_t *end_handle,
     return BL_NO_ERROR;
 }
 #define BLUELIB_ENTER                                                       \
-  if (dev_ctx == NULL){                                                      \
+  if (dev_ctx == NULL)                                                      \
     return BL_NO_CTX_ERROR;                                                 \
-  }
+                                                                            \
+  if (!is_event_loop_running())                                             \
+    return BL_NOT_INIT_ERROR
 
 #define BLUELIB_ENTER_GERR                                                  \
-  if (dev_ctx == NULL){                                                      \
+  if (dev_ctx == NULL){                                                     \
     GError *err = g_error_new(BL_ERROR_DOMAIN, BL_NO_CTX_ERROR,             \
                               "No context given\n");                        \
     PROPAGATE_ERROR;                                                        \
@@ -123,7 +126,7 @@ static inline int handle_assert(uint16_t *start_handle, uint16_t *end_handle,
   }
 
 #define ASSERT_CONNECTED                                                    \
-    if (get_conn_state(dev_ctx) != STATE_CONNECTED) {                        \
+    if (get_conn_state(dev_ctx) != STATE_CONNECTED) {                       \
         printf("Error: Not connected\n");                                   \
         ret = BL_DISCONNECTED_ERROR;                                        \
         goto exit;                                                          \
@@ -135,7 +138,7 @@ if (!is_event_loop_running()) {                                             \
 }
 
 #define ASSERT_CONNECTED_GERR                                               \
-    if (get_conn_state(dev_ctx) != STATE_CONNECTED) {                        \
+    if (get_conn_state(dev_ctx) != STATE_CONNECTED) {                       \
         GError *err = g_error_new(BL_ERROR_DOMAIN,                          \
                                   BL_DISCONNECTED_ERROR,                    \
                                   "Not connected\n");                       \
@@ -153,21 +156,28 @@ if (!is_event_loop_running()) {                                             \
 
 /***************************** Global functions ****************************/
 
-/********************** Initialisation of the context **********************/
-int bl_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
-            const char *dst_type, int psm, const int sec_level)
+/************************* Initialisation functions ************************/
+int bl_init(GError **gerr)
+{
+    return start_event_loop(gerr);
+}
+
+int dev_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
+              const char *dst_type, int psm, const int sec_level)
 {
     BLUELIB_ENTER;
-    dev_ctx->opt_src = g_strdup(src);
-    dev_ctx->opt_dst = g_strdup(dst);
+    dev_ctx->opt_src      = g_strdup(src);
+    dev_ctx->opt_dst      = g_strdup(dst);
     dev_ctx->opt_dst_type = g_strdup(dst_type);
-    dev_ctx->opt_psm = psm;
+    dev_ctx->opt_psm      = psm;
+    dev_ctx->current_mac  = NULL;
 
-    dev_ctx->current_mac = NULL;
     if (sec_level == SECURITY_LEVEL_HIGH)
         dev_ctx->opt_sec_level = g_strdup("high");
+
     else if (sec_level == SECURITY_LEVEL_MEDIUM)
         dev_ctx->opt_sec_level = g_strdup("medium");
+
     else
         dev_ctx->opt_sec_level = g_strdup("low");
 
@@ -175,14 +185,18 @@ int bl_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
 }
 
 
+
 /******************** Connect/Disconnect from a device *********************/
 // Connect to a device
 int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
 {
-    GError *gerr = NULL;
-    int ret;
+    GError  *gerr = NULL;
+    int      ret;
+    cb_ctx_t cb_ctx;
 
     BLUELIB_ENTER;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (get_conn_state(dev_ctx) != STATE_DISCONNECTED) {
         printf("Error: Already connected to a device\n");
@@ -243,13 +257,7 @@ int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
 
     g_io_add_watch(dev_ctx->iochannel, G_IO_HUP, channel_watcher, NULL);
 
-    if (start_event_loop(&gerr)) {
-        printf("Error: fail to start event loop\n");
-        set_conn_state(dev_ctx, STATE_DISCONNECTED);
-        goto error;
-    }
-
-    ret = wait_for_cb(NULL, NULL);
+    ret = wait_for_cb(&cb_ctx, NULL, NULL);
     if (ret) {
         printf("Error: CallBack error\n");
         set_conn_state(dev_ctx, STATE_DISCONNECTED);
@@ -274,8 +282,11 @@ error:
 int bl_disconnect(dev_ctx_t *dev_ctx)
 {
     int ret = BL_NO_ERROR;
+    cb_ctx_t cb_ctx;
 
     BLUELIB_ENTER;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (get_conn_state(dev_ctx) != STATE_DISCONNECTED)
         disconnect_io(dev_ctx);
@@ -301,10 +312,13 @@ int bl_set_connect_cb(dev_ctx_t *dev_ctx, user_cb_fct_t func)
 GSList *bl_get_all_primary(dev_ctx_t *dev_ctx, char *uuid_str, GError **gerr)
 {
     GSList *ret = NULL;
+    cb_ctx_t cb_ctx;
 
     CLEAR_GERROR;
     BLUELIB_ENTER_GERR;
     ASSERT_CONNECTED_GERR;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (uuid_str) {
         bt_uuid_t uuid;
@@ -324,7 +338,7 @@ GSList *bl_get_all_primary(dev_ctx_t *dev_ctx, char *uuid_str, GError **gerr)
         goto exit;
     }
 
-    if (wait_for_cb((void **) &ret, gerr))
+    if (wait_for_cb(&cb_ctx, (void **) &ret, gerr))
         goto exit;
     if ((ret != NULL) && (uuid_str)) {
         // Add uuid to each bl_primary of the list
@@ -376,16 +390,19 @@ GSList *bl_get_included(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
                         GError **gerr)
 {
     GSList *ret = NULL;
+    cb_ctx_t cb_ctx;
 
     CLEAR_GERROR;
     BLUELIB_ENTER_GERR;
     ASSERT_CONNECTED_GERR;
 
+    init_cb_ctx(&cb_ctx, dev_ctx);
+
     // Initialisation to default range.
     uint16_t start_handle = 0x0001;
     uint16_t end_handle   = 0xffff;
 
-    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
+    if (handle_assert(&cb_ctx, &start_handle, &end_handle, bl_primary, gerr))
         goto exit;
 
     if (!gatt_find_included(dev_ctx->attrib, start_handle,
@@ -397,7 +414,7 @@ GSList *bl_get_included(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
         goto exit;
     }
 
-    wait_for_cb((void **) &ret, gerr);
+    wait_for_cb(&cb_ctx, (void **) &ret, gerr);
 exit:
     return ret;;
 }
@@ -410,16 +427,19 @@ GSList *bl_get_all_char(dev_ctx_t *dev_ctx, char *uuid_str,
                         bl_primary_t *bl_primary, GError **gerr)
 {
     GSList *ret = NULL;
+    cb_ctx_t cb_ctx;
 
     CLEAR_GERROR;
     BLUELIB_ENTER_GERR;
     ASSERT_CONNECTED_GERR;
 
+    init_cb_ctx(&cb_ctx, dev_ctx);
+
     // Intialisation to default range.
     uint16_t start_handle;
     uint16_t end_handle;
 
-    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
+    if (handle_assert(&cb_ctx, &start_handle, &end_handle, bl_primary, gerr))
         goto exit;
 
     bt_uuid_t *puuid = NULL;
@@ -438,7 +458,7 @@ GSList *bl_get_all_char(dev_ctx_t *dev_ctx, char *uuid_str,
         goto exit;
     }
 
-    wait_for_cb((void **) &ret, gerr);
+    wait_for_cb(&cb_ctx, (void **) &ret, gerr);
 exit:
     return ret;;
 }
@@ -493,10 +513,13 @@ GSList *bl_get_all_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
     GSList   *ret = NULL;
     uint16_t  start_handle;
     uint16_t  end_handle;
+    cb_ctx_t cb_ctx;
 
     CLEAR_GERROR;
     BLUELIB_ENTER_GERR;
     ASSERT_CONNECTED_GERR;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (start_bl_char) {
         start_handle = start_bl_char->handle + 1;
@@ -531,7 +554,7 @@ GSList *bl_get_all_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
         PROPAGATE_ERROR;
         goto exit;
     }
-    wait_for_cb((void **) &ret, gerr);
+    wait_for_cb(&cb_ctx, (void **) &ret, gerr);
 exit:
     return ret;;
 }
@@ -599,7 +622,7 @@ bl_desc_t *bl_get_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
                                bl_primary_t *bl_primary, char *desc_uuid_str,
                                GError **gerr)
 {
-    *gerr = NULL;
+    *gerr = NULL; //FIXME CLEAR GERR ?
     GSList *bl_desc_list = bl_get_all_desc_by_char(dev_ctx, start_bl_char,
                                                    end_bl_char, bl_primary,
                                                    gerr);
@@ -635,9 +658,12 @@ static bl_value_t *read_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle,
 {
     bl_value_t *ret = NULL;
     *gerr = NULL;
+    cb_ctx_t cb_ctx;
 
     BLUELIB_ENTER_GERR;
     ASSERT_CONNECTED_GERR;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (handle == INVALID_HANDLE) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, EINVAL,
@@ -654,7 +680,7 @@ static bl_value_t *read_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle,
         goto exit;
     }
 
-    wait_for_cb((void **) &ret, gerr);
+    wait_for_cb(&cb_ctx, (void **) &ret, gerr);
 
     // Add handle to the value
     if (ret)
@@ -669,9 +695,12 @@ GSList *bl_read_char_all(dev_ctx_t *dev_ctx, char *uuid_str,
                          bl_primary_t *bl_primary, GError **gerr)
 {
     GSList *ret = NULL;
+    cb_ctx_t cb_ctx;
 
     BLUELIB_ENTER_GERR;
     ASSERT_CONNECTED_GERR;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (uuid_str == NULL) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
@@ -684,7 +713,7 @@ GSList *bl_read_char_all(dev_ctx_t *dev_ctx, char *uuid_str,
     uint16_t start_handle;
     uint16_t end_handle;
 
-    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
+    if (handle_assert(&cb_ctx, &start_handle, &end_handle, bl_primary, gerr))
         goto exit;
 
     bt_uuid_t uuid;
@@ -699,7 +728,7 @@ GSList *bl_read_char_all(dev_ctx_t *dev_ctx, char *uuid_str,
         goto exit;
     }
 
-    wait_for_cb((void **) &ret, gerr);
+    wait_for_cb(&cb_ctx, (void **) &ret, gerr);
 
     if (ret) {
         // Add the value of the UUID to each of the values
@@ -855,8 +884,12 @@ static int write_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle, uint8_t *value,
                         size_t size, int type)
 {
     int ret;
+    cb_ctx_t cb_ctx;
 
+    BLUELIB_ENTER;
     ASSERT_CONNECTED;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (handle == INVALID_HANDLE) {
         printf("Error: Invalid handle\n");
@@ -877,7 +910,7 @@ static int write_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle, uint8_t *value,
             ret = BL_SEND_REQUEST_ERROR;
             goto exit;
         }
-        ret = wait_for_cb(NULL, NULL);
+        ret = wait_for_cb(&cb_ctx, NULL, NULL);
     } else {
         if (!gatt_write_cmd(dev_ctx->attrib, handle, value, size, NULL,
                             NULL)) {
@@ -992,6 +1025,7 @@ int bl_change_sec_level(dev_ctx_t *dev_ctx, int level)
     BtIOSecLevel sec_level;
     int ret;
 
+    BLUELIB_ENTER;
     ASSERT_CONNECTED;
 
     if (dev_ctx->opt_sec_level)
@@ -1031,8 +1065,12 @@ exit:
 int bl_change_mtu(dev_ctx_t *dev_ctx, int value)
 {
     int ret;
+    cb_ctx_t cb_ctx;
 
+    BLUELIB_ENTER;
     ASSERT_CONNECTED;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
 
     if (dev_ctx->opt_psm) {
         printf("Error: Operation is only available for LE transport.\n");
@@ -1057,7 +1095,7 @@ int bl_change_mtu(dev_ctx_t *dev_ctx, int value)
     gatt_exchange_mtu(dev_ctx->attrib, dev_ctx->opt_mtu, exchange_mtu_cb,
                       NULL);
 
-    ret = wait_for_cb(NULL, NULL);
+    ret = wait_for_cb(&cb_ctx, NULL, NULL);
 exit:
     return ret;;
 }

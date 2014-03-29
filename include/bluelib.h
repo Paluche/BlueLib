@@ -48,7 +48,7 @@ GQuark bl_error_domain(void);
 #define BL_DISCONNECTED_ERROR          -2
 #define BL_NO_CALLBACK_ERROR           -3
 #define BL_HANDLE_ORDER_ERROR          -4
-#define BL_NO_CTX_ERROR                -5
+#define BL_NOT_INIT_ERROR              -5
 #define BL_ALREADY_CONNECTED_ERROR     -7
 #define BL_LE_ONLY_ERROR               -8
 #define BL_MTU_ALREADY_EXCHANGED_ERROR -9
@@ -60,6 +60,7 @@ GQuark bl_error_domain(void);
 #define BL_PROTOCOL_ERROR             -17
 #define BL_NOT_NOTIFIABLE_ERROR       -18
 #define BL_NOT_INDICABLE_ERROR        -19
+#define BL_NO_CTX_ERROR                -5
 
 #define INVALID_HANDLE             0x0000
 
@@ -109,7 +110,7 @@ typedef enum state {
     STATE_CONNECTED
 } conn_state_t;
 
-// Bluelib context, one context by slave
+// Bluelib device context
 typedef struct {
     GAttrib    *attrib;
     GIOChannel *iochannel;
@@ -130,11 +131,14 @@ typedef struct {
 } dev_ctx_t;
 
 
+/************************** BlueLib initialisation *************************/
+int bl_init(GError **gerr);
+
 /********************** Initialisation of the context **********************/
 // NOTE: Set the arguments to (dev_ctx_t *dev_ctx, NULL, NULL, NULL, 0, 0) for
 // default values. Initializes the context.
-int bl_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
-            const char *dst_type, int psm, const int sec_level);
+int dev_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
+             const char *dst_type, int psm, const int sec_level);
 
 
 /******************** Connect/Disconnect from a device *********************/

@@ -30,27 +30,25 @@
 
 #define printf(...) printf("[NOTIF] " __VA_ARGS__)
 
-extern GAttrib *attrib;
-
 // Add a notification by UUID.
-int bl_add_notif(char *uuid_str, bl_primary_t *bl_primary,
+int bl_add_notif(dev_ctx_t *dev_ctx, char *uuid_str, bl_primary_t *bl_primary,
     GAttribNotifyFunc func, void *user_data, uint8_t opcode)
 {
   GError *gerr = NULL;
 
   // Get the characteristic associated to the UUID
-  bl_char_t *bl_char= bl_get_char(uuid_str, bl_primary, &gerr);
+  bl_char_t *bl_char = bl_get_char(dev_ctx, uuid_str, bl_primary, &gerr);
 
   if (gerr) {
     printf("%s\n", gerr->message);
     return gerr->code;
   }
 
-  if (has_event_by_uuid(attrib, uuid_str)) {
+  if (has_event_by_uuid(dev_ctx->attrib, uuid_str)) {
     printf("Notification substitute\n");
-    g_attrib_unregister(attrib, uuid_str);
+    g_attrib_unregister(dev_ctx->attrib, uuid_str);
   }
-  int ret = bl_add_notif_by_char(bl_char, NULL, bl_primary, func, user_data,
+  int ret = bl_add_notif_by_char(dev_ctx, bl_char, NULL, bl_primary, func, user_data,
       opcode);
   bl_char_free(bl_char);
   return ret;
@@ -59,7 +57,7 @@ int bl_add_notif(char *uuid_str, bl_primary_t *bl_primary,
 // Add notification by charasteristic.
 // Setting end_bl_char avoid uneeded packet by specifying the end of the zone
 // to search, but the result is the same with or without.
-int bl_add_notif_by_char(bl_char_t *start_bl_char, bl_char_t *end_bl_char,
+int bl_add_notif_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char, bl_char_t *end_bl_char,
     bl_primary_t *bl_primary, GAttribNotifyFunc func, void *user_data,
     uint8_t opcode)
 {
@@ -77,7 +75,7 @@ int bl_add_notif_by_char(bl_char_t *start_bl_char, bl_char_t *end_bl_char,
     goto error;
 
   // Register to the notification
-  client_char_conf = bl_get_desc_by_char(start_bl_char, end_bl_char,
+  client_char_conf = bl_get_desc_by_char(dev_ctx, start_bl_char, end_bl_char,
       bl_primary, GATT_CLIENT_CHARAC_CFG_UUID_STR, &gerr);
 
   if (gerr)
@@ -90,11 +88,11 @@ int bl_add_notif_by_char(bl_char_t *start_bl_char, bl_char_t *end_bl_char,
       GATT_CLIENT_CHARAC_CFG_IND_BIT :
       GATT_CLIENT_CHARAC_CFG_NOTIF_BIT, &value);
 
-  if (bl_write_desc_by_desc(client_char_conf, &value, 2))
+  if (bl_write_desc_by_desc(dev_ctx, client_char_conf, &value, 2))
     goto error;
 
-  if (!g_attrib_register(attrib, opcode, start_bl_char->uuid_str,
-        start_bl_char->value_handle, func, attrib, user_data)) {
+  if (!g_attrib_register(dev_ctx->attrib, opcode, start_bl_char->uuid_str,
+        start_bl_char->value_handle, func, dev_ctx->attrib, user_data)) {
     printf("Malloc error");
     return BL_MALLOC_ERROR;
   }
@@ -119,57 +117,57 @@ gerror:
 }
 
 // Retrieve a UUID from a handle.
-char *bl_get_notif_uuid(uint16_t handle)
+char *bl_get_notif_uuid(dev_ctx_t *dev_ctx, uint16_t handle)
 {
-  return event_get_uuid_by_handle(attrib, handle);
+  return event_get_uuid_by_handle(dev_ctx->attrib, handle);
 }
 
 // Remove a notification by UUID.
-int bl_remove_notif(char *uuid_str)
+int bl_remove_notif(dev_ctx_t *dev_ctx, char *uuid_str)
 {
-  if (!attrib)
+  if (!dev_ctx->attrib)
     return BL_DISCONNECTED_ERROR;
 
-  g_attrib_unregister(attrib, uuid_str);
+  g_attrib_unregister(dev_ctx->attrib, uuid_str);
   return BL_NO_ERROR;
 }
 
 // Remove a notification by characteristic.
-int bl_remove_notif_by_char(bl_char_t *bl_char)
+int bl_remove_notif_by_char(dev_ctx_t *dev_ctx, bl_char_t *bl_char)
 {
-  if (!attrib)
+  if (!dev_ctx->attrib)
     return BL_DISCONNECTED_ERROR;
 
-  char *uuid_str = bl_get_notif_uuid(bl_char->handle);
+  char *uuid_str = bl_get_notif_uuid(dev_ctx, bl_char->handle);
 
-  g_attrib_unregister(attrib, uuid_str);
+  g_attrib_unregister(dev_ctx->attrib, uuid_str);
   return BL_NO_ERROR;
 }
 
 // Remove all notification registered.
-int bl_remove_all_notif(void)
+int bl_remove_all_notif(dev_ctx_t *dev_ctx)
 {
-  if (!attrib)
+  if (!dev_ctx->attrib)
     return BL_DISCONNECTED_ERROR;
 
-  g_attrib_unregister_all(attrib);
+  g_attrib_unregister_all(dev_ctx->attrib);
   return BL_NO_ERROR;
 }
 
 // Print the notification list currently registered.
-void bl_notif_list_print(void)
+void bl_notif_list_print(dev_ctx_t *dev_ctx)
 {
-  event_list_print(attrib);
+  event_list_print(dev_ctx->attrib);
 }
 
-void bl_notif_indication_resp(void)
+void bl_notif_indication_resp(dev_ctx_t *dev_ctx)
 {
   int16_t  olen;
 	uint8_t *opdu;
   size_t   plen;
-  opdu = g_attrib_get_buffer(attrib, &plen);
+  opdu = g_attrib_get_buffer(dev_ctx->attrib, &plen);
 	olen = enc_confirmation(opdu, plen);
 
 	if (olen > 0)
-		g_attrib_send(attrib, 0, opdu, olen, NULL, NULL, NULL);
+		g_attrib_send(dev_ctx->attrib, 0, opdu, olen, NULL, NULL, NULL);
 }

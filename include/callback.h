@@ -24,6 +24,7 @@
 #define _CALLBACK_H_
 
 #include <stdint.h>
+#include "bluelib.h"
 
 typedef struct {
     dev_ctx_t *dev_ctx;
@@ -37,7 +38,7 @@ typedef struct {
 } cb_ctx_t;
 
 // Initializes the structure you must give to every callback in user_data
-void init_cb_ctx(cb_ctx_t *cb_ctx, bl_ctx_t *bl_ctx);
+void init_cb_ctx(cb_ctx_t *cb_ctx, dev_ctx_t *dev_ctx);
 
 // Event loop
 int  start_event_loop(GError **gerr);
@@ -47,8 +48,6 @@ int  is_event_loop_running(void);
 // Block the main thread while waiting for the callback
 int wait_for_cb(cb_ctx_t *cb_ctx, void **ret_pointer, GError **gerr);
 
-// Shared variable
-extern uint16_t end_handle_cb;
 // Callbacks
 void connect_cb(GIOChannel *io, GError *err, gpointer user_data);
 void primary_all_cb(GSList *services, guint8 status,
