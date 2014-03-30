@@ -48,7 +48,7 @@ static void disconnect_io(dev_ctx_t *dev_ctx)
     dev_ctx->attrib = NULL;
     dev_ctx->opt_mtu = 0;
 
-    g_io_channel_shutdown(dev_ctx->iochannel, FALSE, NULL /*usually *GError*/);
+    g_io_channel_shutdown(dev_ctx->iochannel, FALSE, NULL);
     g_io_channel_unref(dev_ctx->iochannel);
     dev_ctx->iochannel = NULL;
 
@@ -112,33 +112,36 @@ static inline int handle_assert(cb_ctx_t *cb_ctx, uint16_t *start_handle,
     return BL_NO_ERROR;
 }
 #define BLUELIB_ENTER                                                       \
-  if (dev_ctx == NULL)                                                      \
-    return BL_NO_CTX_ERROR;                                                 \
+    if (dev_ctx == NULL)                                                    \
+        return BL_NO_CTX_ERROR;                                             \
                                                                             \
-  if (!is_event_loop_running())                                             \
-    return BL_NOT_INIT_ERROR
+    if (!is_event_loop_running())                                           \
+        return BL_NOT_INIT_ERROR
 
 #define BLUELIB_ENTER_GERR                                                  \
-  if (dev_ctx == NULL){                                                     \
-    GError *err = g_error_new(BL_ERROR_DOMAIN, BL_NO_CTX_ERROR,             \
-                              "No context given\n");                        \
-    PROPAGATE_ERROR;                                                        \
-    return NULL;                                                            \
-  }
+    if (dev_ctx == NULL) {                                                  \
+        GError *err = g_error_new(BL_ERROR_DOMAIN, BL_NO_CTX_ERROR,         \
+                                  "No context given\n");                    \
+        PROPAGATE_ERROR;                                                    \
+        return NULL;                                                        \
+    }
 
 #define ASSERT_CONNECTED                                                    \
+{                                                                           \
     if (get_conn_state(dev_ctx) != STATE_CONNECTED) {                       \
         printf("Error: Not connected\n");                                   \
         ret = BL_DISCONNECTED_ERROR;                                        \
         goto exit;                                                          \
     }                                                                       \
-if (!is_event_loop_running()) {                                             \
-    printf("Error: Not connected\n");                                       \
-    ret = BL_DISCONNECTED_ERROR;                                            \
-    goto exit;                                                              \
+    if (!is_event_loop_running()) {                                         \
+        printf("Error: Not connected\n");                                   \
+        ret = BL_DISCONNECTED_ERROR;                                        \
+        goto exit;                                                          \
+    }                                                                       \
 }
 
 #define ASSERT_CONNECTED_GERR                                               \
+{                                                                           \
     if (get_conn_state(dev_ctx) != STATE_CONNECTED) {                       \
         GError *err = g_error_new(BL_ERROR_DOMAIN,                          \
                                   BL_DISCONNECTED_ERROR,                    \
@@ -146,14 +149,14 @@ if (!is_event_loop_running()) {                                             \
         PROPAGATE_ERROR;                                                    \
         goto exit;                                                          \
     }                                                                       \
-if (!is_event_loop_running()) {                                             \
-    GError *err = g_error_new(BL_ERROR_DOMAIN,                              \
-                              BL_DISCONNECTED_ERROR,                        \
-                              "Event loop not running\n");                  \
-    PROPAGATE_ERROR;                                                        \
-    goto exit;                                                              \
+    if (!is_event_loop_running()) {                                         \
+        GError *err = g_error_new(BL_ERROR_DOMAIN,                          \
+                                  BL_DISCONNECTED_ERROR,                    \
+                                  "Event loop not running\n");              \
+        PROPAGATE_ERROR;                                                    \
+        goto exit;                                                          \
+    }                                                                       \
 }
-
 
 /***************************** Global functions ****************************/
 
@@ -165,11 +168,11 @@ int bl_init(GError **gerr)
 
 void bl_stop(void)
 {
-   stop_event_loop();
+    stop_event_loop();
 }
 
 int dev_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
-              const char *dst_type, int psm, const int sec_level)
+             const char *dst_type, int psm, const int sec_level)
 {
     BLUELIB_ENTER;
     dev_ctx->opt_src      = g_strdup(src);
@@ -354,7 +357,8 @@ exit:
 
 // Get a specific primary service.
 // Return the primary service associated to this UUID, if unique.
-bl_primary_t *bl_get_primary(dev_ctx_t *dev_ctx, char *uuid_str, GError **gerr)
+bl_primary_t *bl_get_primary(dev_ctx_t *dev_ctx, char *uuid_str,
+                             GError **gerr)
 {
     CLEAR_GERROR;
     bl_primary_t *bl_primary      = NULL;
@@ -409,8 +413,8 @@ GSList *bl_get_included(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
         goto exit;
 
     if (!gatt_find_included(dev_ctx->attrib, start_handle,
-                                              end_handle, included_cb,
-                                              &cb_ctx))
+                            end_handle, included_cb,
+                            &cb_ctx))
     {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_SEND_REQUEST_ERROR,
                                   "Unable to send request\n");
@@ -496,8 +500,8 @@ bl_char_t *bl_get_char(dev_ctx_t *dev_ctx, char *uuid_str,
 
 // Get all characteristics on a primary service.
 // Returns a list of characteristics (bl_char_t *).
-GSList *bl_get_all_char_in_primary(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
-                                   GError **gerr)
+GSList *bl_get_all_char_in_primary(dev_ctx_t *dev_ctx,
+                                   bl_primary_t *bl_primary, GError **gerr)
 {
     CLEAR_GERROR;
     return bl_get_all_char(dev_ctx, NULL, bl_primary, gerr);
@@ -750,8 +754,8 @@ bl_value_t *bl_read_char(dev_ctx_t *dev_ctx, char *uuid_str,
 {
     CLEAR_GERROR;
     bl_value_t *ret           = NULL;
-    GSList     *bl_value_list = bl_read_char_all(dev_ctx, uuid_str, bl_primary,
-                                                 gerr);
+    GSList     *bl_value_list = bl_read_char_all(dev_ctx, uuid_str,
+                                                 bl_primary, gerr);
 
     if (*gerr || (!bl_value_list) || (!bl_value_list->data))
         return NULL;
@@ -930,8 +934,9 @@ exit:
 }
 
 // Write a characteristic value by UUID on a primary service
-int bl_write_char(dev_ctx_t *dev_ctx, char *uuid_str, bl_primary_t *bl_primary,
-                  uint8_t *value, size_t size, int type)
+int bl_write_char(dev_ctx_t *dev_ctx, char *uuid_str,
+                  bl_primary_t *bl_primary, uint8_t *value, size_t size,
+                  int type)
 {
     int ret;
     GError *gerr = NULL;

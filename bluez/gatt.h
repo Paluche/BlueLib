@@ -57,55 +57,55 @@
 typedef void (*gatt_cb_t) (GSList *l, guint8 status, gpointer user_data);
 
 struct gatt_primary {
-  char uuid[MAX_LEN_UUID_STR + 1];
-  gboolean changed;
-  struct att_range range;
+    char uuid[MAX_LEN_UUID_STR + 1];
+    gboolean changed;
+    struct att_range range;
 };
 
 struct gatt_included {
-  char uuid[MAX_LEN_UUID_STR + 1];
-  uint16_t handle;
-  struct att_range range;
+    char uuid[MAX_LEN_UUID_STR + 1];
+    uint16_t handle;
+    struct att_range range;
 };
 
 struct gatt_char {
-  char uuid[MAX_LEN_UUID_STR + 1];
-  uint16_t handle;
-  uint8_t properties;
-  uint16_t value_handle;
+    char uuid[MAX_LEN_UUID_STR + 1];
+    uint16_t handle;
+    uint8_t properties;
+    uint16_t value_handle;
 };
 
 guint gatt_discover_primary(GAttrib *attrib, bt_uuid_t *uuid, gatt_cb_t func,
-              gpointer user_data);
+                            gpointer user_data);
 
 unsigned int gatt_find_included(GAttrib *attrib, uint16_t start, uint16_t end,
-          gatt_cb_t func, gpointer user_data);
+                                gatt_cb_t func, gpointer user_data);
 
 guint gatt_discover_char(GAttrib *attrib, uint16_t start, uint16_t end,
-          bt_uuid_t *uuid, gatt_cb_t func,
-          gpointer user_data);
+                         bt_uuid_t *uuid, gatt_cb_t func,
+                         gpointer user_data);
 
 guint gatt_read_char(GAttrib *attrib, uint16_t handle, GAttribResultFunc func,
-              gpointer user_data);
+                     gpointer user_data);
 
 guint gatt_write_char(GAttrib *attrib, uint16_t handle, uint8_t *value,
-          size_t vlen, GAttribResultFunc func,
-          gpointer user_data);
+                      size_t vlen, GAttribResultFunc func,
+                      gpointer user_data);
 
 guint gatt_discover_char_desc(GAttrib *attrib, uint16_t start, uint16_t end,
-        GAttribResultFunc func, gpointer user_data);
+                              GAttribResultFunc func, gpointer user_data);
 
-guint gatt_write_cmd(GAttrib *attrib, uint16_t handle, uint8_t *value, int vlen,
-        GDestroyNotify notify, gpointer user_data);
+guint gatt_write_cmd(GAttrib *attrib, uint16_t handle, uint8_t *value,
+                     int vlen, GDestroyNotify notify, gpointer user_data);
 
 guint gatt_read_char_by_uuid(GAttrib *attrib, uint16_t start, uint16_t end,
-        bt_uuid_t *uuid, GAttribResultFunc func,
-        gpointer user_data);
+                             bt_uuid_t *uuid, GAttribResultFunc func,
+                             gpointer user_data);
 
 guint gatt_exchange_mtu(GAttrib *attrib, uint16_t mtu, GAttribResultFunc func,
-              gpointer user_data);
+                        gpointer user_data);
 
 gboolean gatt_parse_record(const sdp_record_t *rec,
-          uuid_t *prim_uuid, uint16_t *psm,
-          uint16_t *start, uint16_t *end);
+                           uuid_t *prim_uuid, uint16_t *psm,
+                           uint16_t *start, uint16_t *end);
 #endif

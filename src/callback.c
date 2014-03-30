@@ -87,7 +87,8 @@ void init_cb_ctx(cb_ctx_t *cb_ctx, dev_ctx_t *dev_ctx)
 int wait_for_cb(cb_ctx_t *cb_ctx, void **ret_pointer, GError **gerr)
 {
     int wait_cnt = 0;
-    if (!g_mutex_trylock(&cb_ctx->pending_cb_mtx) && is_event_loop_running()) {
+    if (!g_mutex_trylock(&cb_ctx->pending_cb_mtx) &&
+        is_event_loop_running()) {
         // Reset return value
         cb_ctx->cb_ret_val     = BL_NO_CALLBACK_ERROR;
         cb_ctx->cb_ret_pointer = NULL;
@@ -119,7 +120,8 @@ int wait_for_cb(cb_ctx_t *cb_ctx, void **ret_pointer, GError **gerr)
         PROPAGATE_ERROR;
         return BL_DISCONNECTED_ERROR;
     } else
-        printf_dbg("Callback returned <%d, %p>\n", cb_ctx->cb_ret_val, cb_ctx->cb_ret_pointer);
+        printf_dbg("Callback returned <%d, %p>\n", cb_ctx->cb_ret_val,
+                   cb_ctx->cb_ret_pointer);
 
     if (cb_ctx->cb_ret_val != BL_NO_ERROR) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, cb_ctx->cb_ret_val, "%s",
@@ -270,7 +272,8 @@ void primary_all_cb(GSList *services, guint8 status,
             bl_primary_list = g_slist_alloc();
             if (bl_primary_list == NULL) {
                 cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                strcpy(cb_ctx->cb_ret_msg, "Primary callback: Malloc error\n");
+                strcpy(cb_ctx->cb_ret_msg,
+                       "Primary callback: Malloc error\n");
                 goto error;
             }
             bl_primary_list->data = bl_primary;
@@ -310,7 +313,8 @@ void primary_by_uuid_cb(GSList *ranges, guint8 status,
     }
     if (ranges == NULL) {
         cb_ctx->cb_ret_val = BL_NO_ERROR;
-        strcpy(cb_ctx->cb_ret_msg, "Primary by UUID callback: Nothing found\n");
+        strcpy(cb_ctx->cb_ret_msg,
+               "Primary by UUID callback: Nothing found\n");
         goto exit;
     }
 
@@ -322,7 +326,8 @@ void primary_by_uuid_cb(GSList *ranges, guint8 status,
 
         if (bl_primary == NULL) {
             cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-            strcpy(cb_ctx->cb_ret_msg, "Primary by UUID callback: Malloc error\n");
+            strcpy(cb_ctx->cb_ret_msg,
+                   "Primary by UUID callback: Malloc error\n");
             goto error;
         }
         if (bl_primary_list == NULL) {
@@ -330,7 +335,8 @@ void primary_by_uuid_cb(GSList *ranges, guint8 status,
 
             if (bl_primary_list == NULL) {
                 cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                strcpy(cb_ctx->cb_ret_msg, "Primary by UUID callback: Malloc error\n");
+                strcpy(cb_ctx->cb_ret_msg,
+                       "Primary by UUID callback: Malloc error\n");
                 goto error;
             }
             bl_primary_list->data = bl_primary;
@@ -373,7 +379,8 @@ void included_cb(GSList *includes, guint8 status, gpointer user_data)
     for (l = includes; l; l = l->next) {
         struct gatt_included *incl = l->data;
         bl_included_t *bl_included = bl_included_new(incl->uuid, incl->handle,
-                                                     incl->range.start, incl->range.end);
+                                                     incl->range.start,
+                                                     incl->range.end);
         if (bl_included == NULL) {
             cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
             strcpy(cb_ctx->cb_ret_msg, "Included callback: Malloc error\n");
@@ -383,7 +390,8 @@ void included_cb(GSList *includes, guint8 status, gpointer user_data)
             bl_included_list = g_slist_alloc();
             if (bl_included_list == NULL) {
                 cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                strcpy(cb_ctx->cb_ret_msg, "Included callback: Malloc error\n");
+                strcpy(cb_ctx->cb_ret_msg,
+                       "Included callback: Malloc error\n");
                 goto error;
             }
             bl_included_list->data = bl_included;
@@ -416,7 +424,8 @@ void char_by_uuid_cb(GSList *characteristics, guint8 status,
     printf_dbg(" IN char_by_uuid\n");
     if (status) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
-        sprintf(cb_ctx->cb_ret_msg, "Characteristic by UUID callback: Failure: %s\n",
+        sprintf(cb_ctx->cb_ret_msg,
+                "Characteristic by UUID callback: Failure: %s\n",
                 att_ecode2str(status));
         goto error;
     }
@@ -425,12 +434,14 @@ void char_by_uuid_cb(GSList *characteristics, guint8 status,
         // Extract data
         struct gatt_char *chars = l->data;
         bl_char_t *bl_char = bl_char_new(chars->uuid, chars->handle,
-                                         chars->properties, chars->value_handle);
+                                         chars->properties,
+                                         chars->value_handle);
 
         // Add it to the characteristic
         if (bl_char == NULL) {
             cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-            strcpy(cb_ctx->cb_ret_msg, "Characteristic by UUID callback: Malloc error\n");
+            strcpy(cb_ctx->cb_ret_msg,
+                   "Characteristic by UUID callback: Malloc error\n");
             goto error;
         }
 
@@ -439,7 +450,8 @@ void char_by_uuid_cb(GSList *characteristics, guint8 status,
             bl_char_list = g_slist_alloc();
             if (bl_char_list == NULL) {
                 cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                strcpy(cb_ctx->cb_ret_msg, "Characteristic by UUID callback: Malloc error\n");
+                strcpy(cb_ctx->cb_ret_msg,
+                       "Characteristic by UUID callback: Malloc error\n");
                 goto error;
             }
             bl_char_list->data = bl_char;
@@ -484,7 +496,8 @@ void char_desc_cb(guint8 status, const guint8 *pdu, guint16 plen,
     list = dec_find_info_resp(pdu, plen, &format);
     if (list == NULL) {
         cb_ctx->cb_ret_val = BL_NO_ERROR;
-        strcpy(cb_ctx->cb_ret_msg, "Characteristic descriptor callback: Nothing found\n");
+        strcpy(cb_ctx->cb_ret_msg,
+               "Characteristic descriptor callback: Nothing found\n");
         goto exit;
     }
 
@@ -507,15 +520,16 @@ void char_desc_cb(guint8 status, const guint8 *pdu, guint16 plen,
             bl_desc_t *bl_desc = bl_desc_new(uuid_str, handle);
             if (bl_desc == NULL) {
                 cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                strcpy(cb_ctx->cb_ret_msg, "Characteristic descriptor callback: Malloc "
-                       "error\n");
+                strcpy(cb_ctx->cb_ret_msg,
+                       "Characteristic descriptor callback: Malloc error\n");
                 goto exit;
             }
             if (bl_desc_list == NULL) {
                 bl_desc_list = g_slist_alloc();
                 if (bl_desc_list == NULL) {
                     cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                    strcpy(cb_ctx->cb_ret_msg, "Characteristic descriptor callback: Malloc "
+                    strcpy(cb_ctx->cb_ret_msg,
+                           "Characteristic descriptor callback: Malloc "
                            "error\n");
                     goto exit;
                 }
@@ -577,7 +591,8 @@ void read_by_hnd_cb(guint8 status, const guint8 *pdu, guint16 plen,
     vlen = dec_read_resp(pdu, plen, data, sizeof(data));
     if (vlen < 0) {
         cb_ctx->cb_ret_val = BL_PROTOCOL_ERROR;
-        strcpy(cb_ctx->cb_ret_msg, "Read by handle callback: Protocol error\n");
+        strcpy(cb_ctx->cb_ret_msg,
+               "Read by handle callback: Protocol error\n");
         goto error;
     }
 
@@ -625,7 +640,8 @@ void read_by_uuid_cb(guint8 status, const guint8 *pdu, guint16 plen,
                                             list->len - 2, list->data[i] + 2);
         if (bl_value == NULL) {
             cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-            strcpy(cb_ctx->cb_ret_msg, "Read by uuid callback: Malloc error\n");
+            strcpy(cb_ctx->cb_ret_msg,
+                   "Read by uuid callback: Malloc error\n");
             goto error;
         }
 
@@ -634,7 +650,8 @@ void read_by_uuid_cb(guint8 status, const guint8 *pdu, guint16 plen,
             bl_value_list = g_slist_alloc();
             if (bl_value_list == NULL) {
                 cb_ctx->cb_ret_val = BL_MALLOC_ERROR;
-                strcpy(cb_ctx->cb_ret_msg, "Read by uuid callback: Malloc error\n");
+                strcpy(cb_ctx->cb_ret_msg,
+                       "Read by uuid callback: Malloc error\n");
                 goto error;
             }
             bl_value_list->data = bl_value;
@@ -708,10 +725,12 @@ void exchange_mtu_cb(guint8 status, const guint8 *pdu, guint16 plen,
     /* Set new value for MTU in client */
     if (!g_attrib_set_mtu(cb_ctx->dev_ctx->attrib, mtu)) {
         cb_ctx->cb_ret_val = BL_REQUEST_FAIL_ERROR;
-        strcpy(cb_ctx->cb_ret_msg, "MTU exchange callback: Unable to set new MTU value "
-               "in client\n");
+        strcpy(cb_ctx->cb_ret_msg,
+               "MTU exchange callback: Unable to set new MTU value in "
+               "client\n");
     } else {
-        sprintf(cb_ctx->cb_ret_msg, "MTU exchange callback: Success: %d\n", mtu);
+        sprintf(cb_ctx->cb_ret_msg, "MTU exchange callback: Success: %d\n",
+                mtu);
         cb_ctx->cb_ret_val = BL_NO_ERROR;
     }
 error:

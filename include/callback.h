@@ -33,9 +33,9 @@ typedef struct {
     uint16_t   end_handle_cb; // Used in only some callbacks.
 
     // Return value from the callback functions
-     void     *cb_ret_pointer;
-     int       cb_ret_val;
-     char      cb_ret_msg[1024];
+    void      *cb_ret_pointer;
+    int        cb_ret_val;
+    char       cb_ret_msg[1024];
 } cb_ctx_t;
 
 // Initializes the structure you must give to every callback in user_data

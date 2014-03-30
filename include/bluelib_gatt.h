@@ -26,36 +26,36 @@
 #include <glib.h>
 
 typedef struct {
-  char        uuid_str[MAX_LEN_UUID_STR];
-  gboolean    changed;
-  uint16_t    start_handle;
-  uint16_t    end_handle;
+    char        uuid_str[MAX_LEN_UUID_STR];
+    gboolean    changed;
+    uint16_t    start_handle;
+    uint16_t    end_handle;
 } bl_primary_t;
 
 typedef struct {
-  char        uuid_str[MAX_LEN_UUID_STR];
-  uint16_t    handle;
-  uint16_t    start_handle;
-  uint16_t    end_handle;
+    char        uuid_str[MAX_LEN_UUID_STR];
+    uint16_t    handle;
+    uint16_t    start_handle;
+    uint16_t    end_handle;
 } bl_included_t;
 
 typedef struct {
-  char        uuid_str[MAX_LEN_UUID_STR];
-  uint16_t    handle;
-  uint8_t     properties;
-  uint16_t    value_handle;
+    char        uuid_str[MAX_LEN_UUID_STR];
+    uint16_t    handle;
+    uint8_t     properties;
+    uint16_t    value_handle;
 } bl_char_t;
 
 typedef struct {
-  char        uuid_str[MAX_LEN_UUID_STR];
-  uint16_t    handle;
+    char        uuid_str[MAX_LEN_UUID_STR];
+    uint16_t    handle;
 } bl_desc_t;
 
 typedef struct {
-  char        uuid_str[MAX_LEN_UUID_STR];
-  uint16_t    handle;
-  size_t      data_size;
-  uint8_t    *data;
+    char        uuid_str[MAX_LEN_UUID_STR];
+    uint16_t    handle;
+    size_t      data_size;
+    uint8_t    *data;
 } bl_value_t;
 
 
@@ -63,18 +63,19 @@ typedef struct {
 
 // Struct creators
 bl_primary_t *bl_primary_new(char *uuid_str, gboolean changed,
-    uint16_t start_handle, uint16_t end_handle);
+                             uint16_t start_handle, uint16_t end_handle);
 
 bl_included_t *bl_included_new(char *uuid_str, const uint16_t handle,
-    const uint16_t start_handle, const uint16_t end_handle);
+                               const uint16_t start_handle,
+                               const uint16_t end_handle);
 
 bl_char_t *bl_char_new(char *uuid_str, const uint16_t handle,
-    const uint8_t properties, const uint16_t value_handle);
+                       const uint8_t properties, const uint16_t value_handle);
 
 bl_desc_t *bl_desc_new(char *uuid_str, const uint16_t handle);
 
 bl_value_t *bl_value_new(char *uuid_str, const uint16_t handle,
-    const size_t data_size, uint8_t *data);
+                         const size_t data_size, uint8_t *data);
 
 // Struct copy
 bl_primary_t  *bl_primary_cpy  (bl_primary_t  *bl_primary);

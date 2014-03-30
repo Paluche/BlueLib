@@ -30,11 +30,11 @@
 
 void set_conn_state(dev_ctx_t *dev_ctx, conn_state_t state)
 {
-  printf("[CONN STATE] %d => %d\n", dev_ctx->conn_state, state);
-  dev_ctx->conn_state = state;
+    printf("[CONN STATE] %d => %d\n", dev_ctx->conn_state, state);
+    dev_ctx->conn_state = state;
 }
 
 conn_state_t get_conn_state(dev_ctx_t *dev_ctx)
 {
-  return dev_ctx->conn_state;
+    return dev_ctx->conn_state;
 }

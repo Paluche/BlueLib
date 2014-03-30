@@ -52,767 +52,773 @@
 #endif
 
 struct _GAttrib {
-  GIOChannel *io;
-  int refs;
-  uint8_t *buf;
-  size_t buflen;
-  guint read_watch;
-  guint write_watch;
-  guint timeout_watch;
-  GQueue *requests;
-  GQueue *responses;
-  GSList *events;
-  guint next_cmd_id;
-  GDestroyNotify destroy;
-  gpointer destroy_user_data;
-  bool stale;
+    GIOChannel *io;
+    int refs;
+    uint8_t *buf;
+    size_t buflen;
+    guint read_watch;
+    guint write_watch;
+    guint timeout_watch;
+    GQueue *requests;
+    GQueue *responses;
+    GSList *events;
+    guint next_cmd_id;
+    GDestroyNotify destroy;
+    gpointer destroy_user_data;
+    bool stale;
 };
 
 struct command {
-  guint id;
-  guint8 opcode;
-  guint8 *pdu;
-  guint16 len;
-  guint8 expected;
-  bool sent;
-  GAttribResultFunc func;
-  gpointer user_data;
-  GDestroyNotify notify;
+    guint id;
+    guint8 opcode;
+    guint8 *pdu;
+    guint16 len;
+    guint8 expected;
+    bool sent;
+    GAttribResultFunc func;
+    gpointer user_data;
+    GDestroyNotify notify;
 };
 
 struct event {
-  char  uuid_str[MAX_LEN_UUID_STR];
-  guint id;
-  guint8 expected;
-  guint16 handle;
-  GAttribNotifyFunc func;
-  gpointer user_data;
-  GDestroyNotify notify;
+    char  uuid_str[MAX_LEN_UUID_STR];
+    guint id;
+    guint8 expected;
+    guint16 handle;
+    GAttribNotifyFunc func;
+    gpointer user_data;
+    GDestroyNotify notify;
 };
 
 static guint8 opcode2expected(guint8 opcode)
 {
-  switch (opcode) {
-  case ATT_OP_MTU_REQ:
-    return ATT_OP_MTU_RESP;
+    switch (opcode) {
+        case ATT_OP_MTU_REQ:
+            return ATT_OP_MTU_RESP;
 
-  case ATT_OP_FIND_INFO_REQ:
-    return ATT_OP_FIND_INFO_RESP;
+        case ATT_OP_FIND_INFO_REQ:
+            return ATT_OP_FIND_INFO_RESP;
 
-  case ATT_OP_FIND_BY_TYPE_REQ:
-    return ATT_OP_FIND_BY_TYPE_RESP;
+        case ATT_OP_FIND_BY_TYPE_REQ:
+            return ATT_OP_FIND_BY_TYPE_RESP;
 
-  case ATT_OP_READ_BY_TYPE_REQ:
-    return ATT_OP_READ_BY_TYPE_RESP;
+        case ATT_OP_READ_BY_TYPE_REQ:
+            return ATT_OP_READ_BY_TYPE_RESP;
 
-  case ATT_OP_READ_REQ:
-    return ATT_OP_READ_RESP;
+        case ATT_OP_READ_REQ:
+            return ATT_OP_READ_RESP;
 
-  case ATT_OP_READ_BLOB_REQ:
-    return ATT_OP_READ_BLOB_RESP;
+        case ATT_OP_READ_BLOB_REQ:
+            return ATT_OP_READ_BLOB_RESP;
 
-  case ATT_OP_READ_MULTI_REQ:
-    return ATT_OP_READ_MULTI_RESP;
+        case ATT_OP_READ_MULTI_REQ:
+            return ATT_OP_READ_MULTI_RESP;
 
-  case ATT_OP_READ_BY_GROUP_REQ:
-    return ATT_OP_READ_BY_GROUP_RESP;
+        case ATT_OP_READ_BY_GROUP_REQ:
+            return ATT_OP_READ_BY_GROUP_RESP;
 
-  case ATT_OP_WRITE_REQ:
-    return ATT_OP_WRITE_RESP;
+        case ATT_OP_WRITE_REQ:
+            return ATT_OP_WRITE_RESP;
 
-  case ATT_OP_PREP_WRITE_REQ:
-    return ATT_OP_PREP_WRITE_RESP;
+        case ATT_OP_PREP_WRITE_REQ:
+            return ATT_OP_PREP_WRITE_RESP;
 
-  case ATT_OP_EXEC_WRITE_REQ:
-    return ATT_OP_EXEC_WRITE_RESP;
+        case ATT_OP_EXEC_WRITE_REQ:
+            return ATT_OP_EXEC_WRITE_RESP;
 
-  case ATT_OP_HANDLE_IND:
-    return ATT_OP_HANDLE_CNF;
-  }
+        case ATT_OP_HANDLE_IND:
+            return ATT_OP_HANDLE_CNF;
+    }
 
-  return 0;
+    return 0;
 }
 
 static bool is_response(guint8 opcode)
 {
-  switch (opcode) {
-  case ATT_OP_ERROR:
-  case ATT_OP_MTU_RESP:
-  case ATT_OP_FIND_INFO_RESP:
-  case ATT_OP_FIND_BY_TYPE_RESP:
-  case ATT_OP_READ_BY_TYPE_RESP:
-  case ATT_OP_READ_RESP:
-  case ATT_OP_READ_BLOB_RESP:
-  case ATT_OP_READ_MULTI_RESP:
-  case ATT_OP_READ_BY_GROUP_RESP:
-  case ATT_OP_WRITE_RESP:
-  case ATT_OP_PREP_WRITE_RESP:
-  case ATT_OP_EXEC_WRITE_RESP:
-  case ATT_OP_HANDLE_CNF:
-    return true;
-  }
+    switch (opcode) {
+        case ATT_OP_ERROR:
+        case ATT_OP_MTU_RESP:
+        case ATT_OP_FIND_INFO_RESP:
+        case ATT_OP_FIND_BY_TYPE_RESP:
+        case ATT_OP_READ_BY_TYPE_RESP:
+        case ATT_OP_READ_RESP:
+        case ATT_OP_READ_BLOB_RESP:
+        case ATT_OP_READ_MULTI_RESP:
+        case ATT_OP_READ_BY_GROUP_RESP:
+        case ATT_OP_WRITE_RESP:
+        case ATT_OP_PREP_WRITE_RESP:
+        case ATT_OP_EXEC_WRITE_RESP:
+        case ATT_OP_HANDLE_CNF:
+            return true;
+    }
 
-  return false;
+    return false;
 }
 
 GAttrib *g_attrib_ref(GAttrib *attrib)
 {
-  if (!attrib)
-    return NULL;
+    if (!attrib)
+        return NULL;
 
 #ifdef DEBUG_ON
-  int refs;
-  refs =
+    int refs;
+    refs =
 #endif
-    __sync_add_and_fetch(&attrib->refs, 1);
-  DBG("%p: ref=%d\n", attrib, refs);
+        __sync_add_and_fetch(&attrib->refs, 1);
+    DBG("%p: ref=%d\n", attrib, refs);
 
-  return attrib;
+    return attrib;
 }
 
 static void command_destroy(struct command *cmd)
 {
-  if (cmd->notify)
-    cmd->notify(cmd->user_data);
+    if (cmd->notify)
+        cmd->notify(cmd->user_data);
 
-  g_free(cmd->pdu);
-  g_free(cmd);
+    g_free(cmd->pdu);
+    g_free(cmd);
 }
 
 static void event_destroy(struct event *evt)
 {
-  if (evt->notify)
-    evt->notify(evt->user_data);
+    if (evt->notify)
+        evt->notify(evt->user_data);
 
-  g_free(evt);
+    g_free(evt);
 }
 
 static void attrib_destroy(GAttrib *attrib)
 {
-  GSList *l;
-  struct command *c;
+    GSList *l;
+    struct command *c;
 
-  while ((c = g_queue_pop_head(attrib->requests)))
-    command_destroy(c);
+    while ((c = g_queue_pop_head(attrib->requests)))
+        command_destroy(c);
 
-  while ((c = g_queue_pop_head(attrib->responses)))
-    command_destroy(c);
+    while ((c = g_queue_pop_head(attrib->responses)))
+        command_destroy(c);
 
-  g_queue_free(attrib->requests);
-  attrib->requests = NULL;
+    g_queue_free(attrib->requests);
+    attrib->requests = NULL;
 
-  g_queue_free(attrib->responses);
-  attrib->responses = NULL;
+    g_queue_free(attrib->responses);
+    attrib->responses = NULL;
 
-  for (l = attrib->events; l; l = l->next)
-    event_destroy(l->data);
+    for (l = attrib->events; l; l = l->next)
+        event_destroy(l->data);
 
-  g_slist_free(attrib->events);
-  attrib->events = NULL;
+    g_slist_free(attrib->events);
+    attrib->events = NULL;
 
-  if (attrib->timeout_watch > 0)
-    g_source_remove(attrib->timeout_watch);
+    if (attrib->timeout_watch > 0)
+        g_source_remove(attrib->timeout_watch);
 
-  if (attrib->write_watch > 0)
-    g_source_remove(attrib->write_watch);
+    if (attrib->write_watch > 0)
+        g_source_remove(attrib->write_watch);
 
-  if (attrib->read_watch > 0)
-    g_source_remove(attrib->read_watch);
+    if (attrib->read_watch > 0)
+        g_source_remove(attrib->read_watch);
 
-  if (attrib->io)
-    g_io_channel_unref(attrib->io);
+    if (attrib->io)
+        g_io_channel_unref(attrib->io);
 
-  g_free(attrib->buf);
+    g_free(attrib->buf);
 
-  if (attrib->destroy)
-    attrib->destroy(attrib->destroy_user_data);
+    if (attrib->destroy)
+        attrib->destroy(attrib->destroy_user_data);
 
-  g_free(attrib);
+    g_free(attrib);
 }
 
 void g_attrib_unref(GAttrib *attrib)
 {
-  int refs;
+    int refs;
 
-  if (!attrib)
-    return;
+    if (!attrib)
+        return;
 
-  refs = __sync_sub_and_fetch(&attrib->refs, 1);
+    refs = __sync_sub_and_fetch(&attrib->refs, 1);
 
-  DBG("%p: ref=%d\n", attrib, refs);
+    DBG("%p: ref=%d\n", attrib, refs);
 
-  if (refs > 0)
-    return;
+    if (refs > 0)
+        return;
 
-  attrib_destroy(attrib);
+    attrib_destroy(attrib);
 }
 
 GIOChannel *g_attrib_get_channel(GAttrib *attrib)
 {
-  if (!attrib)
-    return NULL;
+    if (!attrib)
+        return NULL;
 
-  return attrib->io;
+    return attrib->io;
 }
 
 gboolean g_attrib_set_destroy_function(GAttrib *attrib,
-    GDestroyNotify destroy, gpointer user_data)
+                                       GDestroyNotify destroy,
+                                       gpointer user_data)
 {
-  if (attrib == NULL)
-    return FALSE;
+    if (attrib == NULL)
+        return FALSE;
 
-  attrib->destroy = destroy;
-  attrib->destroy_user_data = user_data;
+    attrib->destroy = destroy;
+    attrib->destroy_user_data = user_data;
 
-  return TRUE;
+    return TRUE;
 }
 
 static gboolean disconnect_timeout(gpointer data)
 {
-  struct _GAttrib *attrib = data;
-  struct command *c;
+    struct _GAttrib *attrib = data;
+    struct command *c;
 
-  g_attrib_ref(attrib);
+    g_attrib_ref(attrib);
 
-  c = g_queue_pop_head(attrib->requests);
-  if (c == NULL)
-    goto done;
+    c = g_queue_pop_head(attrib->requests);
+    if (c == NULL)
+        goto done;
 
-  if (c->func)
-    c->func(ATT_ECODE_TIMEOUT, NULL, 0, c->user_data);
-
-  command_destroy(c);
-
-  while ((c = g_queue_pop_head(attrib->requests))) {
     if (c->func)
-      c->func(ATT_ECODE_ABORTED, NULL, 0, c->user_data);
+        c->func(ATT_ECODE_TIMEOUT, NULL, 0, c->user_data);
+
     command_destroy(c);
-  }
+
+    while ((c = g_queue_pop_head(attrib->requests))) {
+        if (c->func)
+            c->func(ATT_ECODE_ABORTED, NULL, 0, c->user_data);
+        command_destroy(c);
+    }
 
 done:
-  attrib->stale = true;
+    attrib->stale = true;
 
-  g_attrib_unref(attrib);
+    g_attrib_unref(attrib);
 
-  return FALSE;
+    return FALSE;
 }
 
 static gboolean can_write_data(GIOChannel *io, GIOCondition cond,
-                gpointer data)
+                               gpointer data)
 {
-  struct _GAttrib *attrib = data;
-  struct command *cmd;
-  GError *gerr = NULL;
-  gsize len;
-  GIOStatus iostat;
-  GQueue *queue;
+    struct _GAttrib *attrib = data;
+    struct command *cmd;
+    GError *gerr = NULL;
+    gsize len;
+    GIOStatus iostat;
+    GQueue *queue;
 
-  if (attrib->stale)
-    return FALSE;
+    if (attrib->stale)
+        return FALSE;
 
-  if (cond & (G_IO_HUP | G_IO_ERR | G_IO_NVAL))
-    return FALSE;
+    if (cond & (G_IO_HUP | G_IO_ERR | G_IO_NVAL))
+        return FALSE;
 
-  queue = attrib->responses;
-  cmd = g_queue_peek_head(queue);
-  if (cmd == NULL) {
-    queue = attrib->requests;
+    queue = attrib->responses;
     cmd = g_queue_peek_head(queue);
-  }
-  if (cmd == NULL)
-    return FALSE;
+    if (cmd == NULL) {
+        queue = attrib->requests;
+        cmd = g_queue_peek_head(queue);
+    }
+    if (cmd == NULL)
+        return FALSE;
 
-  /*
-   * Verify that we didn't already send this command. This can only
-   * happen with elementes from attrib->requests.
-   */
-  if (cmd->sent)
-    return FALSE;
+    /*
+     * Verify that we didn't already send this command. This can only
+     * happen with elementes from attrib->requests.
+     */
+    if (cmd->sent)
+        return FALSE;
 
-  iostat = g_io_channel_write_chars(io, (char *) cmd->pdu, cmd->len,
-                &len, &gerr);
-  if (iostat != G_IO_STATUS_NORMAL) {
-    if (gerr) {
-      printf("%s", gerr->message);
-      g_error_free(gerr);
+    iostat = g_io_channel_write_chars(io, (char *) cmd->pdu, cmd->len,
+                                      &len, &gerr);
+    if (iostat != G_IO_STATUS_NORMAL) {
+        if (gerr) {
+            printf("%s", gerr->message);
+            g_error_free(gerr);
+        }
+
+        return FALSE;
     }
 
+    if (cmd->expected == 0) {
+        g_queue_pop_head(queue);
+        command_destroy(cmd);
+
+        return TRUE;
+    }
+
+    cmd->sent = true;
+
+    if (attrib->timeout_watch == 0)
+        attrib->timeout_watch = g_timeout_add_seconds(GATT_TIMEOUT,
+                                                      disconnect_timeout,
+                                                      attrib);
+
     return FALSE;
-  }
-
-  if (cmd->expected == 0) {
-    g_queue_pop_head(queue);
-    command_destroy(cmd);
-
-    return TRUE;
-  }
-
-  cmd->sent = true;
-
-  if (attrib->timeout_watch == 0)
-    attrib->timeout_watch = g_timeout_add_seconds(GATT_TIMEOUT,
-            disconnect_timeout, attrib);
-
-  return FALSE;
 }
 
 static void destroy_sender(gpointer data)
 {
-  struct _GAttrib *attrib = data;
+    struct _GAttrib *attrib = data;
 
-  attrib->write_watch = 0;
-  g_attrib_unref(attrib);
+    attrib->write_watch = 0;
+    g_attrib_unref(attrib);
 }
 
 static void wake_up_sender(struct _GAttrib *attrib)
 {
-  if (attrib->write_watch > 0)
-    return;
+    if (attrib->write_watch > 0)
+        return;
 
-  attrib = g_attrib_ref(attrib);
-  attrib->write_watch = g_io_add_watch_full(attrib->io,
-        G_PRIORITY_DEFAULT, G_IO_OUT,
-        can_write_data, attrib, destroy_sender);
+    attrib = g_attrib_ref(attrib);
+    attrib->write_watch = g_io_add_watch_full(attrib->io,
+                                              G_PRIORITY_DEFAULT, G_IO_OUT,
+                                              can_write_data, attrib,
+                                              destroy_sender);
 }
 
 static bool match_event(struct event *evt, const uint8_t *pdu, gsize len)
 {
-  guint16 handle;
+    guint16 handle;
 
-  if (evt->expected == GATTRIB_ALL_EVENTS)
-    return true;
+    if (evt->expected == GATTRIB_ALL_EVENTS)
+        return true;
 
-  if (!is_response(pdu[0]) && evt->expected == GATTRIB_ALL_REQS)
-    return true;
+    if (!is_response(pdu[0]) && evt->expected == GATTRIB_ALL_REQS)
+        return true;
 
-  if (evt->expected == pdu[0] && evt->handle == GATTRIB_ALL_HANDLES)
-    return true;
+    if (evt->expected == pdu[0] && evt->handle == GATTRIB_ALL_HANDLES)
+        return true;
 
-  if (len < 3)
+    if (len < 3)
+        return false;
+
+    handle = att_get_u16(&pdu[1]);
+
+    if (evt->expected == pdu[0] && evt->handle == handle)
+        return true;
+
     return false;
-
-  handle = att_get_u16(&pdu[1]);
-
-  if (evt->expected == pdu[0] && evt->handle == handle)
-    return true;
-
-  return false;
 }
 
-static gboolean received_data(GIOChannel *io, GIOCondition cond, gpointer data)
+static gboolean received_data(GIOChannel *io, GIOCondition cond,
+                              gpointer data)
 {
-  struct _GAttrib *attrib = data;
-  struct command *cmd = NULL;
-  GSList *l;
-  uint8_t buf[512], status;
-  gsize len;
-  GIOStatus iostat;
+    struct _GAttrib *attrib = data;
+    struct command *cmd = NULL;
+    GSList *l;
+    uint8_t buf[512], status;
+    gsize len;
+    GIOStatus iostat;
 
-  if (attrib->stale)
-    return FALSE;
+    if (attrib->stale)
+        return FALSE;
 
-  if (cond & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
-    attrib->read_watch = 0;
-    return FALSE;
-  }
+    if (cond & (G_IO_HUP | G_IO_ERR | G_IO_NVAL)) {
+        attrib->read_watch = 0;
+        return FALSE;
+    }
 
-  memset(buf, 0, sizeof(buf));
+    memset(buf, 0, sizeof(buf));
 
-  iostat = g_io_channel_read_chars(io, (char *) buf, sizeof(buf),
-                &len, NULL);
-  if (iostat != G_IO_STATUS_NORMAL) {
-    status = ATT_ECODE_IO;
-    goto done;
-  }
+    iostat = g_io_channel_read_chars(io, (char *) buf, sizeof(buf),
+                                     &len, NULL);
+    if (iostat != G_IO_STATUS_NORMAL) {
+        status = ATT_ECODE_IO;
+        goto done;
+    }
 
-  for (l = attrib->events; l; l = l->next) {
-    struct event *evt = l->data;
+    for (l = attrib->events; l; l = l->next) {
+        struct event *evt = l->data;
 
-    if (match_event(evt, buf, len))
-      evt->func(buf, len, evt->user_data);
-  }
+        if (match_event(evt, buf, len))
+            evt->func(buf, len, evt->user_data);
+    }
 
-  if (!is_response(buf[0]))
-    return TRUE;
+    if (!is_response(buf[0]))
+        return TRUE;
 
-  if (attrib->timeout_watch > 0) {
-    g_source_remove(attrib->timeout_watch);
-    attrib->timeout_watch = 0;
-  }
+    if (attrib->timeout_watch > 0) {
+        g_source_remove(attrib->timeout_watch);
+        attrib->timeout_watch = 0;
+    }
 
-  cmd = g_queue_pop_head(attrib->requests);
-  if (cmd == NULL) {
-    /* Keep the watch if we have events to report */
-    return attrib->events != NULL;
-  }
+    cmd = g_queue_pop_head(attrib->requests);
+    if (cmd == NULL) {
+        /* Keep the watch if we have events to report */
+        return attrib->events != NULL;
+    }
 
-  if (buf[0] == ATT_OP_ERROR) {
-    status = buf[4];
-    goto done;
-  }
+    if (buf[0] == ATT_OP_ERROR) {
+        status = buf[4];
+        goto done;
+    }
 
-  if (cmd->expected != buf[0]) {
-    status = ATT_ECODE_IO;
-    goto done;
-  }
+    if (cmd->expected != buf[0]) {
+        status = ATT_ECODE_IO;
+        goto done;
+    }
 
-  status = 0;
+    status = 0;
 
 done:
-  if (!g_queue_is_empty(attrib->requests) ||
-          !g_queue_is_empty(attrib->responses))
-    wake_up_sender(attrib);
+    if (!g_queue_is_empty(attrib->requests) ||
+        !g_queue_is_empty(attrib->responses))
+        wake_up_sender(attrib);
 
-  if (cmd) {
-    if (cmd->func)
-      cmd->func(status, buf, len, cmd->user_data);
+    if (cmd) {
+        if (cmd->func)
+            cmd->func(status, buf, len, cmd->user_data);
 
-    command_destroy(cmd);
-  }
+        command_destroy(cmd);
+    }
 
-  return TRUE;
+    return TRUE;
 }
 
 GAttrib *g_attrib_new(GIOChannel *io)
 {
-  struct _GAttrib *attrib;
-  uint16_t imtu;
-  uint16_t att_mtu;
-  uint16_t cid;
-  GError *gerr = NULL;
+    struct _GAttrib *attrib;
+    uint16_t imtu;
+    uint16_t att_mtu;
+    uint16_t cid;
+    GError *gerr = NULL;
 
-  g_io_channel_set_encoding(io, NULL, NULL);
-  g_io_channel_set_buffered(io, FALSE);
+    g_io_channel_set_encoding(io, NULL, NULL);
+    g_io_channel_set_buffered(io, FALSE);
 
-  bt_io_get(io, &gerr, BT_IO_OPT_IMTU, &imtu,
-        BT_IO_OPT_CID, &cid, BT_IO_OPT_INVALID);
-  if (gerr) {
-    printf("%s", gerr->message);
-    g_error_free(gerr);
-    return NULL;
-  }
+    bt_io_get(io, &gerr, BT_IO_OPT_IMTU, &imtu,
+              BT_IO_OPT_CID, &cid, BT_IO_OPT_INVALID);
+    if (gerr) {
+        printf("%s", gerr->message);
+        g_error_free(gerr);
+        return NULL;
+    }
 
-  attrib = g_try_new0(struct _GAttrib, 1);
-  if (attrib == NULL)
-    return NULL;
+    attrib = g_try_new0(struct _GAttrib, 1);
+    if (attrib == NULL)
+        return NULL;
 
-  att_mtu = (cid == ATT_CID) ? ATT_DEFAULT_LE_MTU : imtu;
+    att_mtu = (cid == ATT_CID) ? ATT_DEFAULT_LE_MTU : imtu;
 
-  attrib->buf = g_malloc0(att_mtu);
-  attrib->buflen = att_mtu;
+    attrib->buf = g_malloc0(att_mtu);
+    attrib->buflen = att_mtu;
 
-  attrib->io = g_io_channel_ref(io);
-  attrib->requests = g_queue_new();
-  attrib->responses = g_queue_new();
+    attrib->io = g_io_channel_ref(io);
+    attrib->requests = g_queue_new();
+    attrib->responses = g_queue_new();
 
-  attrib->read_watch = g_io_add_watch(attrib->io,
-      G_IO_IN | G_IO_HUP | G_IO_ERR | G_IO_NVAL,
-      received_data, attrib);
+    attrib->read_watch = g_io_add_watch(attrib->io,
+                                        G_IO_IN  | G_IO_HUP |
+                                        G_IO_ERR | G_IO_NVAL,
+                                        received_data, attrib);
 
-  return g_attrib_ref(attrib);
+    return g_attrib_ref(attrib);
 }
 
 guint g_attrib_send(GAttrib *attrib, guint id, const guint8 *pdu, guint16 len,
-      GAttribResultFunc func, gpointer user_data,
-      GDestroyNotify notify)
+                    GAttribResultFunc func, gpointer user_data,
+                    GDestroyNotify notify)
 {
-  struct command *c;
-  GQueue *queue;
-  uint8_t opcode;
+    struct command *c;
+    GQueue *queue;
+    uint8_t opcode;
 
-  if (attrib->stale)
-    return 0;
+    if (attrib->stale)
+        return 0;
 
-  c = g_try_new0(struct command, 1);
-  if (c == NULL)
-    return 0;
+    c = g_try_new0(struct command, 1);
+    if (c == NULL)
+        return 0;
 
-  opcode = pdu[0];
+    opcode = pdu[0];
 
-  c->opcode = opcode;
-  c->expected = opcode2expected(opcode);
-  c->pdu = g_malloc(len);
-  memcpy(c->pdu, pdu, len);
-  c->len = len;
-  c->func = func;
-  c->user_data = user_data;
-  c->notify = notify;
+    c->opcode = opcode;
+    c->expected = opcode2expected(opcode);
+    c->pdu = g_malloc(len);
+    memcpy(c->pdu, pdu, len);
+    c->len = len;
+    c->func = func;
+    c->user_data = user_data;
+    c->notify = notify;
 
-  if (is_response(opcode))
-    queue = attrib->responses;
-  else
-    queue = attrib->requests;
-
-  if (id) {
-    c->id = id;
-    if (!is_response(opcode))
-      g_queue_push_head(queue, c);
+    if (is_response(opcode))
+        queue = attrib->responses;
     else
-      /* Don't re-order responses even if an ID is given */
-      g_queue_push_tail(queue, c);
-  } else {
-    c->id = ++attrib->next_cmd_id;
-    g_queue_push_tail(queue, c);
-  }
+        queue = attrib->requests;
 
-  /*
-   * If a command was added to the queue and it was empty before, wake up
-   * the sender. If the sender was already woken up by the second queue,
-   * wake_up_sender will just return.
-   */
-  if (g_queue_get_length(queue) == 1)
-    wake_up_sender(attrib);
+    if (id) {
+        c->id = id;
+        if (!is_response(opcode))
+            g_queue_push_head(queue, c);
+        else
+            /* Don't re-order responses even if an ID is given */
+            g_queue_push_tail(queue, c);
+    } else {
+        c->id = ++attrib->next_cmd_id;
+        g_queue_push_tail(queue, c);
+    }
 
-  return c->id;
+    /*
+     * If a command was added to the queue and it was empty before, wake up
+     * the sender. If the sender was already woken up by the second queue,
+     * wake_up_sender will just return.
+     */
+    if (g_queue_get_length(queue) == 1)
+        wake_up_sender(attrib);
+
+    return c->id;
 }
 
 static int command_cmp_by_id(gconstpointer a, gconstpointer b)
 {
-  const struct command *cmd = a;
-  guint id = GPOINTER_TO_UINT(b);
+    const struct command *cmd = a;
+    guint id = GPOINTER_TO_UINT(b);
 
-  return cmd->id - id;
+    return cmd->id - id;
 }
 
 static int event_cmp_by_handle(gconstpointer a, gconstpointer b)
 {
-  const struct event    *evt    =  a;
-  const        guint16  handle  = GPOINTER_TO_UINT(b);
-  return (evt->handle - handle);
+    const struct event    *evt    =  a;
+    const        guint16  handle  = GPOINTER_TO_UINT(b);
+    return (evt->handle - handle);
 }
 
 static int event_cmp_by_uuid(gconstpointer a, gconstpointer b)
 {
-  const struct event *evt      = a;
-  const        char  *uuid_str = b;
-  return  strcmp(evt->uuid_str, uuid_str);
+    const struct event *evt      = a;
+    const        char  *uuid_str = b;
+    return  strcmp(evt->uuid_str, uuid_str);
 }
 
 gboolean g_attrib_cancel(GAttrib *attrib, guint id)
 {
-  GList *l = NULL;
-  struct command *cmd;
-  GQueue *queue;
+    GList *l = NULL;
+    struct command *cmd;
+    GQueue *queue;
 
-  if (attrib == NULL)
-    return FALSE;
+    if (attrib == NULL)
+        return FALSE;
 
-  queue = attrib->requests;
-  if (queue)
-    l = g_queue_find_custom(queue, GUINT_TO_POINTER(id),
-          command_cmp_by_id);
-  if (l == NULL) {
-    queue = attrib->responses;
-    if (!queue)
-      return FALSE;
-    l = g_queue_find_custom(queue, GUINT_TO_POINTER(id),
-          command_cmp_by_id);
-  }
+    queue = attrib->requests;
+    if (queue)
+        l = g_queue_find_custom(queue, GUINT_TO_POINTER(id),
+                                command_cmp_by_id);
+    if (l == NULL) {
+        queue = attrib->responses;
+        if (!queue)
+            return FALSE;
+        l = g_queue_find_custom(queue, GUINT_TO_POINTER(id),
+                                command_cmp_by_id);
+    }
 
-  if (l == NULL)
-    return FALSE;
+    if (l == NULL)
+        return FALSE;
 
-  cmd = l->data;
+    cmd = l->data;
 
-  if (cmd == g_queue_peek_head(queue) && cmd->sent)
-    cmd->func = NULL;
-  else {
-    g_queue_remove(queue, cmd);
-    command_destroy(cmd);
-  }
+    if (cmd == g_queue_peek_head(queue) && cmd->sent)
+        cmd->func = NULL;
+    else {
+        g_queue_remove(queue, cmd);
+        command_destroy(cmd);
+    }
 
-  return TRUE;
+    return TRUE;
 }
 
 static gboolean cancel_all_per_queue(GQueue *queue)
 {
-  struct command *c, *head = NULL;
-  gboolean first = TRUE;
+    struct command *c, *head = NULL;
+    gboolean first = TRUE;
 
-  if (queue == NULL)
-    return FALSE;
+    if (queue == NULL)
+        return FALSE;
 
-  while ((c = g_queue_pop_head(queue))) {
-    if (first && c->sent) {
-      /* If the command was sent ignore its callback ... */
-      c->func = NULL;
-      head = c;
-      continue;
+    while ((c = g_queue_pop_head(queue))) {
+        if (first && c->sent) {
+            /* If the command was sent ignore its callback ... */
+            c->func = NULL;
+            head = c;
+            continue;
+        }
+
+        first = FALSE;
+        command_destroy(c);
     }
 
-    first = FALSE;
-    command_destroy(c);
-  }
+    if (head) {
+        /* ... and put it back in the queue */
+        g_queue_push_head(queue, head);
+    }
 
-  if (head) {
-    /* ... and put it back in the queue */
-    g_queue_push_head(queue, head);
-  }
-
-  return TRUE;
+    return TRUE;
 }
 
 gboolean g_attrib_cancel_all(GAttrib *attrib)
 {
-  gboolean ret;
+    gboolean ret;
 
-  if (attrib == NULL)
-    return FALSE;
+    if (attrib == NULL)
+        return FALSE;
 
-  ret = cancel_all_per_queue(attrib->requests);
-  ret = cancel_all_per_queue(attrib->responses) && ret;
+    ret = cancel_all_per_queue(attrib->requests);
+    ret = cancel_all_per_queue(attrib->responses) && ret;
 
-  return ret;
+    return ret;
 }
 
 gboolean g_attrib_set_debug(GAttrib *attrib,
-    GAttribDebugFunc func, gpointer user_data)
+                            GAttribDebugFunc func, gpointer user_data)
 {
-  return TRUE;
+    return TRUE;
 }
 
 uint8_t *g_attrib_get_buffer(GAttrib *attrib, size_t *len)
 {
-  if (len == NULL)
-    return NULL;
+    if (len == NULL)
+        return NULL;
 
-  *len = attrib->buflen;
+    *len = attrib->buflen;
 
-  return attrib->buf;
+    return attrib->buf;
 }
 
 gboolean g_attrib_set_mtu(GAttrib *attrib, int mtu)
 {
-  if (mtu < ATT_DEFAULT_LE_MTU)
-    return FALSE;
+    if (mtu < ATT_DEFAULT_LE_MTU)
+        return FALSE;
 
-  attrib->buf = g_realloc(attrib->buf, mtu);
+    attrib->buf = g_realloc(attrib->buf, mtu);
 
-  attrib->buflen = mtu;
+    attrib->buflen = mtu;
 
-  return TRUE;
+    return TRUE;
 }
 
 guint g_attrib_register(GAttrib *attrib, guint8 opcode, char *uuid_str,
-    guint16 handle, GAttribNotifyFunc func, gpointer user_data,
-    GDestroyNotify notify)
+                        guint16 handle, GAttribNotifyFunc func,
+                        gpointer user_data, GDestroyNotify notify)
 {
-  static guint next_evt_id = 0;
-  struct event *event;
+    static guint next_evt_id = 0;
+    struct event *event;
 
-  event = g_try_new0(struct event, 1);
-  if (event == NULL)
-    return 0;
+    event = g_try_new0(struct event, 1);
+    if (event == NULL)
+        return 0;
 
-  strcpy(event->uuid_str, uuid_str);
-  event->expected = opcode;
-  event->handle = handle;
-  event->func = func;
-  event->user_data = user_data;
-  event->notify = notify;
-  event->id = ++next_evt_id;
+    strcpy(event->uuid_str, uuid_str);
+    event->expected = opcode;
+    event->handle = handle;
+    event->func = func;
+    event->user_data = user_data;
+    event->notify = notify;
+    event->id = ++next_evt_id;
 
-  attrib->events = g_slist_append(attrib->events, event);
+    attrib->events = g_slist_append(attrib->events, event);
 
-  return event->id;
+    return event->id;
 }
 
 gboolean g_attrib_is_encrypted(GAttrib *attrib)
 {
-  BtIOSecLevel sec_level;
+    BtIOSecLevel sec_level;
 
-  if (!bt_io_get(attrib->io, NULL,
-      BT_IO_OPT_SEC_LEVEL, &sec_level,
-      BT_IO_OPT_INVALID))
-    return FALSE;
+    if (!bt_io_get(attrib->io, NULL,
+                   BT_IO_OPT_SEC_LEVEL, &sec_level,
+                   BT_IO_OPT_INVALID))
+        return FALSE;
 
-  return sec_level > BT_IO_SEC_LOW;
+    return sec_level > BT_IO_SEC_LOW;
 }
 
 gboolean g_attrib_unregister(GAttrib *attrib, char *uuid_str)
 {
-  struct event *evt;
-  GSList *l;
+    struct event *evt;
+    GSList *l;
 
-  if (!uuid_str) {
-    printf("%s: invalid uuid", __func__);
-    return FALSE;
-  }
+    if (!uuid_str) {
+        printf("%s: invalid uuid", __func__);
+        return FALSE;
+    }
 
-  l = g_slist_find_custom(attrib->events, (gpointer) uuid_str,
-      event_cmp_by_uuid);
-  if (l == NULL)
-    return FALSE;
+    l = g_slist_find_custom(attrib->events, (gpointer) uuid_str,
+                            event_cmp_by_uuid);
+    if (l == NULL)
+        return FALSE;
 
-  evt = l->data;
+    evt = l->data;
 
-  attrib->events = g_slist_remove(attrib->events, evt);
+    attrib->events = g_slist_remove(attrib->events, evt);
 
-  if (evt->notify)
-    evt->notify(evt->user_data);
+    if (evt->notify)
+        evt->notify(evt->user_data);
 
-  g_free(evt);
+    g_free(evt);
 
-  return TRUE;
+    return TRUE;
 }
 
 gboolean g_attrib_unregister_all(GAttrib *attrib)
 {
-  GSList *l;
+    GSList *l;
 
-  if (attrib->events == NULL)
-    return FALSE;
+    if (attrib->events == NULL)
+        return FALSE;
 
-  for (l = attrib->events; l; l = l->next) {
-    struct event *evt = l->data;
+    for (l = attrib->events; l; l = l->next) {
+        struct event *evt = l->data;
 
-    if (evt->notify)
-      evt->notify(evt->user_data);
+        if (evt->notify)
+            evt->notify(evt->user_data);
 
-    g_free(evt);
-  }
+        g_free(evt);
+    }
 
-  g_slist_free(attrib->events);
-  attrib->events = NULL;
+    g_slist_free(attrib->events);
+    attrib->events = NULL;
 
-  return TRUE;
+    return TRUE;
 }
 
 void event_list_print(GAttrib *attrib)
 {
-  GSList *l;
+    GSList *l;
     printf("Event List:\n");
 
-  if (attrib->events == NULL) {
-    printf("    NO data\n");
-    return;
-  }
+    if (attrib->events == NULL) {
+        printf("    NO data\n");
+        return;
+    }
 
-  for (l = attrib->events; l; l = l->next) {
-    struct event *evt = l->data;
-    printf("    UUID: %s, id: %d, expected 0x%x, handle 0x%x, func %p, "
-        "user_data %p, notify %p\n", evt->uuid_str, evt->id, evt->expected,
-        evt->handle, evt->func, evt->user_data, evt->notify);
-  }
+    for (l = attrib->events; l; l = l->next) {
+        struct event *evt = l->data;
+        printf("    UUID: %s, id: %d, expected 0x%x, handle 0x%x, func %p, "
+               "user_data %p, notify %p\n", evt->uuid_str, evt->id,
+               evt->expected, evt->handle, evt->func, evt->user_data,
+               evt->notify);
+    }
 }
 
 char *event_get_uuid_by_handle(GAttrib *attrib, guint16 handle)
 {
-  GSList *l = g_slist_find_custom(attrib->events, GUINT_TO_POINTER(handle),
-      event_cmp_by_handle);
-  if (l && l->data){
-    struct event *event = l->data;
-    return event->uuid_str;
-  }
-  return NULL;
+    GSList *l = g_slist_find_custom(attrib->events, GUINT_TO_POINTER(handle),
+                                    event_cmp_by_handle);
+    if (l && l->data){
+        struct event *event = l->data;
+        return event->uuid_str;
+    }
+    return NULL;
 }
 
 gboolean has_event_by_uuid(GAttrib *attrib, char *uuid_str)
 {
-  GSList *l = g_slist_find_custom(attrib->events, (gpointer) uuid_str,
-      event_cmp_by_handle);
+    GSList *l = g_slist_find_custom(attrib->events, (gpointer) uuid_str,
+                                    event_cmp_by_handle);
 
-  if (l && l->data)
-    return TRUE;
-  return FALSE;
+    if (l && l->data)
+        return TRUE;
+    return FALSE;
 }
