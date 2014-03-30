@@ -2,6 +2,7 @@
  *  BlueLib - Abstraction layer for Bluetooth Low Energy softwares
  *
  *  Copyright (C) 2013  Netatmo
+ *  Copyright (C) 2014  Hubert Lefevre
  *
  *
  *  This program is free software; you can redistribute it and/or modify
