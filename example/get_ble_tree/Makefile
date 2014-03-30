@@ -20,24 +20,38 @@ CFLAGS += -Wall
 LDLIBS += $(shell pkg-config --libs glib-2.0)
 LDLIBS += -lbluetooth
 
+EXE 		 = get_ble_tree
+EXE_SRC      = main.c
+BLUELIB_SRC	 = bluelib.c bluelib_gatt.c callback.c conn_state.c notif.c
+BLUEZ_SRC    = att.c btio.c gatt.c gattrib.c utils.c uuid.c
+
+OBJDIR       = objs
+EXE_OBJS     = $(addprefix $(OBJDIR)/, $(notdir $(SRC:.c=.o)))
+BLUELIB_OBJS = $(addprefix $(OBJDIR)/, $(notdir $(BLUELIB_SRC:.c=.o)))
+BLUEZ_OBJS   = $(addprefix $(OBJDIR)/, $(notdir $(BLUEZ_SRC:.c=.o)))
+OBJS         = $(EXE_OBJS) $(BLUELIB_OBJS) $(BLUEZ_OBJS)
+
+
 .PHONY: clean distclean all
+all: $(EXE) $(OBJDIR)
 
-all: get_ble_tree
+$(EXE): $(OBJS)
 
-get_ble_tree: get_ble_tree.o \
-              bluelib.o bluelib_gatt.o callback.o conn_state.o notif.o \
-			  att.o btio.o gatt.o gattrib.o utils.o uuid.o
+$(OBJDIR):
+	@mkdir $(OBJDIR)
 
-%.o: ../../src/%.c
+$(EXE_OBJS): $(OBJDIR)/%.o: %.c
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
-%.o: ../../bluez/%.c
+$(BLUELIB_OBJS): $(OBJDIR)/%.o: ../../src/%.c
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+
+$(BLUEZ_OBJS): $(OBJDIR)/%.o: ../../bluez/%.c
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 clean:
-	-rm -f *.o
-
-distclean: clean
-	-rm -f get_ble_tree
+	-rm -f $(OBJS)
+	-rm -rf $(OBJDIR)
+	-rm -f $(EXE)
 
 include ../../ble.mk
