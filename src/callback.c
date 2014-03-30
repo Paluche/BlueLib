@@ -153,7 +153,7 @@ static gpointer _event_thread(gpointer data)
     event_loop = NULL;
     printf_dbg("Event loop EXIT\n");
     g_thread_exit(0);
-    return 0;
+    return NULL;
 }
 
 int start_event_loop(GError **gerr)
