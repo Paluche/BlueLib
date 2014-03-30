@@ -171,51 +171,30 @@ void bl_stop(void)
     stop_event_loop();
 }
 
-int dev_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
-             const char *dst_type, int psm, const int sec_level)
+int dev_init(dev_ctx_t *dev_ctx, const char *mac_src, const char *mac_dst,
+             const char *mac_dst_type, int psm, const sec_level_t sec_level)
 {
-    BLUELIB_ENTER;
-    dev_ctx->opt_src      = g_strdup(src);
-    dev_ctx->opt_dst      = g_strdup(dst);
-    dev_ctx->opt_dst_type = g_strdup(dst_type);
-    dev_ctx->opt_psm      = psm;
-    dev_ctx->current_mac  = NULL;
-
-    if (sec_level == SECURITY_LEVEL_HIGH)
-        dev_ctx->opt_sec_level = g_strdup("high");
-
-    else if (sec_level == SECURITY_LEVEL_MEDIUM)
-        dev_ctx->opt_sec_level = g_strdup("medium");
-
-    else
-        dev_ctx->opt_sec_level = g_strdup("low");
-
-    return BL_NO_ERROR;
-}
-
-
-
-/******************** Connect/Disconnect from a device *********************/
-// Connect to a device
-int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
-{
-    GError  *gerr = NULL;
-    int      ret;
-    cb_ctx_t cb_ctx;
+    int ret = BL_NO_ERROR;
 
     BLUELIB_ENTER;
-
-    init_cb_ctx(&cb_ctx, dev_ctx);
-
-    if (get_conn_state(dev_ctx) != STATE_DISCONNECTED) {
-        printf("Error: Already connected to a device\n");
-        ret = BL_ALREADY_CONNECTED_ERROR;
-        goto error;
+    if (dev_ctx->opt_mac_src && mac_src) {
+        g_free(dev_ctx->opt_mac_src);
+        dev_ctx->opt_mac_src = g_strdup(mac_src);
+    } else {
+        dev_ctx->opt_mac_src = NULL;
     }
+
+    if (dev_ctx->opt_mac_dst && mac_dst) {
+        g_free(dev_ctx->opt_mac_dst_type);
+        dev_ctx->opt_mac_dst_type = g_strdup(mac_dst_type);
+    } else {
+        dev_ctx->opt_mac_dst_type = g_strdup("public");
+    }
+
+    dev_ctx->opt_psm          = psm;
 
     if (!mac_dst) {
         printf("Error: Remote Bluetooth address required\n");
-        ret = EINVAL;
         goto error;
     }
 
@@ -232,19 +211,52 @@ int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
     if (mac_dst[MAC_SZ] != '\0')
         goto wrongmac;
 
-    g_free(dev_ctx->opt_dst);
-    dev_ctx->opt_dst = g_strdup(mac_dst);
+    g_free(dev_ctx->opt_mac_dst);
+    dev_ctx->opt_mac_dst = g_strdup(mac_dst);
 
-    g_free(dev_ctx->opt_dst_type);
-    if (dst_type)
-        dev_ctx->opt_dst_type = g_strdup(dst_type);
+    if (sec_level == SECURITY_LEVEL_HIGH)
+        dev_ctx->opt_sec_level = g_strdup("high");
+
+    else if (sec_level == SECURITY_LEVEL_MEDIUM)
+        dev_ctx->opt_sec_level = g_strdup("medium");
+
     else
-        dev_ctx->opt_dst_type = g_strdup("public");
+        dev_ctx->opt_sec_level = g_strdup("low");
+    goto exit;
 
-    printf("Attempting to connect to %s\n", dev_ctx->opt_dst);
+wrongmac:
+    printf("Error: Address MAC invalid\n");
+error:
+    ret = EINVAL;
+exit:
+    return ret;
+}
+
+
+
+/******************** Connect/Disconnect from a device *********************/
+// Connect to a device
+int bl_connect(dev_ctx_t *dev_ctx)
+{
+    GError  *gerr = NULL;
+    int      ret;
+    cb_ctx_t cb_ctx;
+
+    BLUELIB_ENTER;
+
+    init_cb_ctx(&cb_ctx, dev_ctx);
+
+    if (get_conn_state(dev_ctx) != STATE_DISCONNECTED) {
+        printf("Error: Already connected to a device\n");
+        ret = BL_ALREADY_CONNECTED_ERROR;
+        goto error;
+    }
+
+    printf("Attempting to connect to %s\n", dev_ctx->opt_mac_dst);
     set_conn_state(dev_ctx, STATE_CONNECTING);
-    dev_ctx->iochannel = gatt_connect(dev_ctx->opt_src, dev_ctx->opt_dst,
-                                      dev_ctx->opt_dst_type,
+    dev_ctx->iochannel = gatt_connect(dev_ctx->opt_mac_src,
+                                      dev_ctx->opt_mac_dst,
+                                      dev_ctx->opt_mac_dst_type,
                                       dev_ctx->opt_sec_level,
                                       dev_ctx->opt_psm, dev_ctx->opt_mtu,
                                       connect_cb, &cb_ctx, &gerr);
@@ -273,15 +285,11 @@ int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
         goto error;
     }
 
-    dev_ctx->current_mac = mac_dst;
     ret = BL_NO_ERROR;
     if (dev_ctx->connect_cb_fct)
         return dev_ctx->connect_cb_fct();
     return ret;
 
-wrongmac:
-    printf("Error: Address MAC invalid\n");
-    ret = EINVAL;
 error:
     return ret;;
 }
@@ -1028,7 +1036,7 @@ int bl_write_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
 
 /*************************** Set security level ****************************/
 // Default: low
-int bl_change_sec_level(dev_ctx_t *dev_ctx, int level)
+int bl_change_sec_level(dev_ctx_t *dev_ctx, const sec_level_t level)
 {
     GError *gerr = NULL;
     BtIOSecLevel sec_level;

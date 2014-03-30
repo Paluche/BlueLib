@@ -84,7 +84,7 @@ static int check_errors(int code)
                     printf("Next try in 10 seconds\n");
                     sleep(10);
                     printf("Try to reconnect\n");
-                    int ret = bl_connect(&dev_ctx, mac, NULL);
+                    int ret = bl_connect(&dev_ctx);
                     if ((ret != BL_NO_ERROR) &&
                         (ret != BL_ALREADY_CONNECTED_ERROR) &&
                         (ret != BL_NOT_NOTIFIABLE_ERROR )) {
@@ -164,10 +164,10 @@ int main(int argc, char **argv)
         printf("ERROR: Unable to initalise BlueLib\n");
         return -1;
     }
-    dev_init(&dev_ctx, NULL, NULL, NULL, 0, TEST_SEC_LEVEL);
+    dev_init(&dev_ctx, NULL, mac, NULL, 0, TEST_SEC_LEVEL);
 
     do {
-        ret_int = bl_connect(&dev_ctx, mac, NULL);
+        ret_int = bl_connect(&dev_ctx);
     } while (check_errors(ret_int));
 
     if (ret_int)

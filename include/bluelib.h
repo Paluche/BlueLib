@@ -105,10 +105,10 @@ GQuark bl_error_domain(void);
 typedef int (user_cb_fct_t)(void);
 
 // Connection state
-typedef enum state {
+typedef enum {
     STATE_DISCONNECTED,
     STATE_CONNECTING,
-    STATE_CONNECTED
+    STATE_CONNECTED,
 } conn_state_t;
 
 // Bluelib device context
@@ -117,12 +117,11 @@ typedef struct {
     GIOChannel *iochannel;
     int         opt_mtu;
 
-    char       *opt_src;
-    char       *opt_dst;
-    char       *opt_dst_type;
+    char       *opt_mac_src;
+    char       *opt_mac_dst;
+    char       *opt_mac_dst_type;
     char       *opt_sec_level;
     int         opt_psm;
-    char       *current_mac;
 
     // User specific connection callback.
     user_cb_fct_t *connect_cb_fct;
@@ -131,6 +130,12 @@ typedef struct {
     conn_state_t conn_state;
 } dev_ctx_t;
 
+// Security levels
+typedef enum {
+    SECURITY_LEVEL_LOW, // Default
+    SECURITY_LEVEL_MEDIUM,
+    SECURITY_LEVEL_HIGH,
+} sec_level_t;
 
 /****************************** BlueLib control *****************************/
 // Initializes the global context and the callback thread.
@@ -139,16 +144,17 @@ int bl_init(GError **gerr);
 // Stop callback thread.
 void bl_stop(void);
 
+
 /********************** Initialisation of the context **********************/
-// NOTE: Set the arguments to (dev_ctx_t *dev_ctx, NULL, NULL, NULL, 0, 0) for
-// default values. Initializes the context.
-int dev_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
-             const char *dst_type, int psm, const int sec_level);
+// NOTE: You must provide at least dev_ctx and mac_src. You can set by default
+// the rest at NULL or 0.
+int dev_init(dev_ctx_t *dev_ctx, const char *mac_src, const char *mac_dst,
+             const char *mac_dst_type, int psm, const sec_level_t sec_level);
 
 
 /******************** Connect/Disconnect from a device *********************/
 // Connect to a device.
-int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type);
+int bl_connect(dev_ctx_t *dev_ctx);
 
 // Disconnect from the device, delete the nofication list.
 int bl_disconnect(dev_ctx_t *dev_ctx);
@@ -318,10 +324,7 @@ int bl_write_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
 
 
 /*************************** Set security level ****************************/
-#define SECURITY_LEVEL_LOW    0 // Default
-#define SECURITY_LEVEL_MEDIUM 1
-#define SECURITY_LEVEL_HIGH   2
-int bl_change_sec_level(dev_ctx_t *dev_ctx, int level);
+int bl_change_sec_level(dev_ctx_t *dev_ctx, const sec_level_t level);
 
 
 /************************* Change MTU for GATT/ATT *************************/
