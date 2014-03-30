@@ -17,5 +17,8 @@
 *.out
 *.app
 get_ble_tree
+bluelib_test
+multi_slave_test
 
 ble.mk
+
