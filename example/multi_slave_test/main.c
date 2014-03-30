@@ -143,7 +143,7 @@ int main(int argc, char **argv)
            " comes with ABSOLUTELY NO WARRANTY\nThis is free software, and yo"
            "u are welcome to redistribute it\nunder certain conditions; See t"
            "he GNU General Public License\nfor more details.\n\n");
-    if(argc != 3) {
+    if(argc != 5) {
         usage();
         return 0;
     }
