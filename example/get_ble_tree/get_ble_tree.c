@@ -84,7 +84,8 @@ static int check_errors(int code)
                     sleep(10);
                     printf("Try to reconnect\n");
                     int ret = bl_connect(&dev_ctx, mac, NULL);
-                    if ((ret != BL_NO_ERROR) && (ret != BL_ALREADY_CONNECTED_ERROR) &&
+                    if ((ret != BL_NO_ERROR) &&
+                        (ret != BL_ALREADY_CONNECTED_ERROR) &&
                         (ret != BL_NOT_NOTIFIABLE_ERROR )) {
                         printf("ERROR <%d>\n", ret);
                         if (error_cnt < RETRY_MAX) {
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
     // Initialisation
     bl_init(&gerr);
     if (check_gerrors(gerr)) {
-
+        printf("ERROR: Unable to initalise BlueLib\n");
         return -1;
     }
     dev_init(&dev_ctx, NULL, NULL, NULL, 0, TEST_SEC_LEVEL);
@@ -258,5 +259,6 @@ disconnect:
         fclose(file);
     printf("Disconnecting\n");
     bl_disconnect(&dev_ctx);
+    bl_stop();
     return 0;
 }

@@ -7,11 +7,13 @@ CFLAGS += -Wall
 LDLIBS += $(shell pkg-config --libs glib-2.0)
 LDLIBS += -lbluetooth
 
+.PHONY: clean distclean all
+
 all: get_ble_tree
 
 get_ble_tree: get_ble_tree.o \
               bluelib.o bluelib_gatt.o callback.o conn_state.o notif.o \
-							att.o btio.o gatt.o gattrib.o utils.o uuid.o
+			  att.o btio.o gatt.o gattrib.o utils.o uuid.o
 
 %.o: ../../src/%.c
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
@@ -24,4 +26,5 @@ clean:
 
 distclean: clean
 	-rm -f get_ble_tree
+
 include ../../ble.mk

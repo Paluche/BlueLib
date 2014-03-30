@@ -220,9 +220,7 @@ void connect_cb(GIOChannel *io, GError *err, gpointer user_data)
         sprintf(cb_ctx->cb_ret_msg, "%s", err->message);
         goto error;
     }
-    printf("BLA 0\n");
     cb_ctx->dev_ctx->attrib = g_attrib_new(cb_ctx->dev_ctx->iochannel);
-    printf("BLA 1\n");
     set_conn_state(cb_ctx->dev_ctx, STATE_CONNECTED);
     strcpy(cb_ctx->cb_ret_msg, "Connection successful\n");
     cb_ctx->cb_ret_val = BL_NO_ERROR;

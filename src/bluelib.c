@@ -162,6 +162,11 @@ int bl_init(GError **gerr)
     return start_event_loop(gerr);
 }
 
+void bl_stop(void)
+{
+   stop_event_loop();
+}
+
 int dev_init(dev_ctx_t *dev_ctx, const char *src, const char *dst,
               const char *dst_type, int psm, const int sec_level)
 {
@@ -261,7 +266,6 @@ int bl_connect(dev_ctx_t *dev_ctx, char *mac_dst, char *dst_type)
     if (ret) {
         printf("Error: CallBack error\n");
         set_conn_state(dev_ctx, STATE_DISCONNECTED);
-        stop_event_loop();
         goto error;
     }
 
@@ -291,8 +295,6 @@ int bl_disconnect(dev_ctx_t *dev_ctx)
     if (get_conn_state(dev_ctx) != STATE_DISCONNECTED)
         disconnect_io(dev_ctx);
     printf("Disconnected\n");
-    if (is_event_loop_running())
-        stop_event_loop();
     return ret;;
 }
 

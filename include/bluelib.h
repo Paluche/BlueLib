@@ -131,8 +131,12 @@ typedef struct {
 } dev_ctx_t;
 
 
-/************************** BlueLib initialisation *************************/
+/****************************** BlueLib control *****************************/
+// Initializes the global context and the callback thread.
 int bl_init(GError **gerr);
+
+// Stop callback thread.
+void bl_stop(void);
 
 /********************** Initialisation of the context **********************/
 // NOTE: Set the arguments to (dev_ctx_t *dev_ctx, NULL, NULL, NULL, 0, 0) for
@@ -161,7 +165,8 @@ conn_state_t get_conn_state(dev_ctx_t *dev_ctx);
 /*************************** Get Primary Service ***************************/
 // Get a specific primary service.
 // Return the primary service associated to this UUID, if unique.
-bl_primary_t *bl_get_primary(dev_ctx_t *dev_ctx, char *uuid_str, GError **gerr);
+bl_primary_t *bl_get_primary(dev_ctx_t *dev_ctx, char *uuid_str,
+                             GError **gerr);
 
 // Get all the primary service associated of an UUID.
 // Return a list of primary services (bl_primary_t *).
@@ -192,8 +197,8 @@ GSList *bl_get_all_char(dev_ctx_t *dev_ctx, char *uuid_str,
 
 // Get all characteristics on a primary service.
 // Returns a list of characteristics (bl_char_t *).
-GSList *bl_get_all_char_in_primary(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
-                                   GError **gerr);
+GSList *bl_get_all_char_in_primary(dev_ctx_t *dev_ctx,
+                                   bl_primary_t *bl_primary, GError **gerr);
 
 
 /***************************** Get descriptors *****************************/
