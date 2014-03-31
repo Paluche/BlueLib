@@ -218,7 +218,8 @@ int main(int argc, char **argv)
 
             // Get all characteristics in the primary service
             do {
-                bl_char_list = bl_get_all_char_in_primary(&dev_ctx, bl_primary, &gerr);
+                bl_char_list = bl_get_all_char_in_primary(&dev_ctx,
+                                                          bl_primary, &gerr);
             } while (check_gerrors(gerr));
 
             if (bl_char_list) {

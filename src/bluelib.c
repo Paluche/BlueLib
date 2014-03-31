@@ -171,27 +171,27 @@ void bl_stop(void)
     stop_event_loop();
 }
 
-int dev_init(dev_ctx_t *dev_ctx, const char *mac_src, const char *mac_dst,
-             const char *mac_dst_type, int psm, const sec_level_t sec_level)
+int dev_init(dev_ctx_t *dev_ctx, char *mac_src, char *mac_dst,
+             char *mac_dst_type, int psm, sec_level_t sec_level)
 {
     int ret = BL_NO_ERROR;
 
     BLUELIB_ENTER;
-    if (dev_ctx->opt_mac_src && mac_src) {
+    if (mac_src) {
         g_free(dev_ctx->opt_mac_src);
         dev_ctx->opt_mac_src = g_strdup(mac_src);
     } else {
         dev_ctx->opt_mac_src = NULL;
     }
 
-    if (dev_ctx->opt_mac_dst && mac_dst) {
+    if (mac_dst_type) {
         g_free(dev_ctx->opt_mac_dst_type);
         dev_ctx->opt_mac_dst_type = g_strdup(mac_dst_type);
     } else {
         dev_ctx->opt_mac_dst_type = g_strdup("public");
     }
 
-    dev_ctx->opt_psm          = psm;
+    dev_ctx->opt_psm = psm;
 
     if (!mac_dst) {
         printf("Error: Remote Bluetooth address required\n");

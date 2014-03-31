@@ -148,8 +148,8 @@ void bl_stop(void);
 /********************** Initialisation of the context **********************/
 // NOTE: You must provide at least dev_ctx and mac_src. You can set by default
 // the rest at NULL or 0.
-int dev_init(dev_ctx_t *dev_ctx, const char *mac_src, const char *mac_dst,
-             const char *mac_dst_type, int psm, const sec_level_t sec_level);
+int dev_init(dev_ctx_t *dev_ctx, char *dev_src, char *mac_dst,
+             char *mac_dst_type, int psm, sec_level_t sec_level);
 
 
 /******************** Connect/Disconnect from a device *********************/

@@ -137,7 +137,7 @@ static int check_gerrors(int thd_nb, GError *gerr)
 
 
 
-static int get_ble_tree(const int thd_nb, const char *mac,
+static int get_ble_tree(const int thd_nb, char *mac,
                         const char *file_path)
 {
 
@@ -181,7 +181,8 @@ static int get_ble_tree(const int thd_nb, const char *mac,
         fprintf(file, "Device name: %s\n", device_name_str);
         bl_value_free(bl_value);
     } else {
-        printf("[THD%d]Impossible to retrieve the name of the device \n", thd_nb);
+        printf("[THD%d]Impossible to retrieve the name of the device \n",
+               thd_nb);
         goto disconnect;
     }
 
@@ -212,7 +213,8 @@ static int get_ble_tree(const int thd_nb, const char *mac,
 
             // Get all characteristics in the primary service
             do {
-                bl_char_list = bl_get_all_char_in_primary(&dev_ctx, bl_primary, &gerr);
+                bl_char_list = bl_get_all_char_in_primary(&dev_ctx,
+                                                          bl_primary, &gerr);
             } while (check_gerrors(thd_nb, gerr));
 
             if (bl_char_list) {
