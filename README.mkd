@@ -27,20 +27,24 @@ Libraries needed on Ubuntu
 A update to at least ubuntu 12.10 or later might be useful.
 
 #### glib2.0
-sudo apt-get install libglib2.0-dev
+
+    sudo apt-get install libglib2.0-dev
 
 #### BlueZ
-sudo apt-get install bluez
+
+    sudo apt-get install bluez
 
 #### Bluetooth devellopement library
-sudo apt-get install libbluetooth-dev
+
+    sudo apt-get install libbluetooth-dev
 
 #### Optionnal for having the dump of the Bluetooth packet exchanged
-sudo apt-get install bluez-hcidump
-sudo apt-get install wireshark
+
+    sudo apt-get install bluez-hcidump wireshark
 
 Problem to connect with your device in security level medium/high
 -----------------------------------------------------------------
 
 To repair a Bluetooth device:
-sudo bluez-simple-agent hci0 [MAC ADRESS of the device in format XX:XX:XX:XX:XX:XX] repair
+
+    sudo bluez-simple-agent hci0 [MAC ADRESS of the device in format XX:XX:XX:XX:XX:XX] repair
