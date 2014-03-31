@@ -41,7 +41,7 @@
 //  Callback global Context
 static GMainLoop  *event_loop    = NULL;
 static GThread    *event_thread  = NULL;
-static GMutex     *cb_mutex = NULL;
+static GMutex      cb_mutex;
 
 // The callback and the functions are running in two seperate thread, we need
 // to use transport variables to return the results.
@@ -145,9 +145,9 @@ int wait_for_cb(cb_ctx_t *cb_ctx, void **ret_pointer, GError **gerr)
 static gpointer _event_thread(gpointer data)
 {
     printf_dbg("Event loop START\n");
-    g_mutex_lock(cb_mutex);
+    g_mutex_lock(&cb_mutex);
     event_loop = g_main_loop_new(NULL, FALSE);
-    g_mutex_unlock(cb_mutex);
+    g_mutex_unlock(&cb_mutex);
     g_main_loop_run(event_loop);
     g_main_loop_unref(event_loop);
     event_loop = NULL;
@@ -158,14 +158,7 @@ static gpointer _event_thread(gpointer data)
 
 int start_event_loop(GError **gerr)
 {
-    cb_mutex = malloc(sizeof(GMutex));
-    if (cb_mutex == NULL) {
-        GError *err = g_error_new(BL_ERROR_DOMAIN, BL_MALLOC_ERROR,
-                                  "Start event loop: Malloc error\n");
-        PROPAGATE_ERROR;
-        goto error1;
-    }
-    g_mutex_init(cb_mutex);
+    g_mutex_init(&cb_mutex);
 
     event_thread = g_thread_try_new("event_loop", _event_thread, NULL, gerr);
 
@@ -178,34 +171,28 @@ int start_event_loop(GError **gerr)
 
     if (event_thread == NULL) {
         printf_dbg("%s\n", (*gerr)->message);
-        goto error2;
+        goto error;
     }
 
     return 0;
 
-error2:
-    free(cb_mutex);
-    cb_mutex = NULL;
-
-error1:
+error:
     return -1;
 }
 
 void stop_event_loop(void)
 {
-    g_mutex_lock(cb_mutex);
+    g_mutex_lock(&cb_mutex);
     if (event_loop)
         g_main_loop_quit(event_loop);
-    g_mutex_unlock(cb_mutex);
+    g_mutex_unlock(&cb_mutex);
 }
 
 int is_event_loop_running(void)
 {
-    if (!cb_mutex)
-        return 0;
-    g_mutex_lock(cb_mutex);
+    g_mutex_lock(&cb_mutex);
     int ret = ((event_thread != NULL) && (event_loop != NULL));
-    g_mutex_unlock(cb_mutex);
+    g_mutex_unlock(&cb_mutex);
     return ret;
 }
 

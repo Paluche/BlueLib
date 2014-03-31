@@ -65,12 +65,12 @@ static int check_errors(int thd_nb, int code)
             case EINVAL:
             case BL_REQUEST_FAIL_ERROR:
                 error_cnt = 0;
-                printf("[THD%d]OK going on\n", thd_nb);
+                printf("[THD%d] Going on anyway\n", thd_nb);
                 return 0;
 
             case BL_NO_CTX_ERROR:
                 while(bl_init(NULL)) {
-                    printf("[THD%d]error count: %d\n", thd_nb, error_cnt);
+                    printf("[THD%d] error count: %d\n", thd_nb, error_cnt);
                     if (error_cnt < RETRY_MAX)
                         error_cnt++;
                     else
@@ -83,21 +83,21 @@ static int check_errors(int thd_nb, int code)
             case BL_DISCONNECTED_ERROR:
             case BL_NO_CALLBACK_ERROR:
                 for(;;) {
-                    printf("[THD%d]Next try in 10 seconds\n", thd_nb);
+                    printf("[THD%d] Next try in 10 seconds\n", thd_nb);
                     sleep(10);
-                    printf("[THD%d]Try to reconnect\n", thd_nb);
+                    printf("[THD%d] Try to reconnect\n", thd_nb);
                     int ret = bl_connect(&dev_ctx);
                     if ((ret != BL_NO_ERROR) &&
                         (ret != BL_ALREADY_CONNECTED_ERROR) &&
                         (ret != BL_NOT_NOTIFIABLE_ERROR )) {
-                        printf("[THD%d]ERROR <%d>\n", thd_nb, ret);
+                        printf("[THD%d] ERROR <%d>\n", thd_nb, ret);
                         if (error_cnt < RETRY_MAX) {
                             error_cnt++;
-                            printf("[THD%d]error count: %d\n", thd_nb, error_cnt);
+                            printf("[THD%d] Error count: %d\n", thd_nb, error_cnt);
                         } else
                             exit(-1);
                     } else {
-                        printf("[THD%d]Reconnected\n", thd_nb);
+                        printf("[THD%d] Reconnected\n", thd_nb);
                         return 1;
                     }
                 }
@@ -125,7 +125,7 @@ static int check_gerrors(int thd_nb, GError *gerr)
 {
     int ret = 0;
     if (gerr) {
-        printf("[THD%d]%s", thd_nb, gerr->message);
+        printf("[THD%d] %s", thd_nb, gerr->message);
         ret = check_errors(thd_nb, gerr->code);
         g_error_free(gerr);
         gerr = NULL;
@@ -155,10 +155,10 @@ static int get_ble_tree(const int thd_nb, char *mac,
     // Initialisation
     bl_init(&gerr);
     if (check_gerrors(thd_nb, gerr)) {
-        printf("[THD%d]ERROR: Unable to initalise BlueLib\n", thd_nb);
+        printf("[THD%d] ERROR: Unable to initalise BlueLib\n", thd_nb);
         return -1;
     }
-    dev_init(&dev_ctx, NULL, mac, NULL, 0, TEST_SEC_LEVEL);
+    dev_init(&dev_ctx, NULL, mac, "random", 0, TEST_SEC_LEVEL);
 
     do {
         ret_int = bl_connect(&dev_ctx);
@@ -172,7 +172,7 @@ static int get_ble_tree(const int thd_nb, char *mac,
                                 &gerr);
     } while(check_gerrors(thd_nb, gerr));
 
-    printf("[THD%d]In progress\n", thd_nb);
+    printf("[THD%d] In progress\n", thd_nb);
     if (bl_value) {
         char device_name_str[bl_value->data_size + 1];
         memcpy(device_name_str, bl_value->data,
@@ -181,7 +181,7 @@ static int get_ble_tree(const int thd_nb, char *mac,
         fprintf(file, "Device name: %s\n", device_name_str);
         bl_value_free(bl_value);
     } else {
-        printf("[THD%d]Impossible to retrieve the name of the device \n",
+        printf("[THD%d] Impossible to retrieve the name of the device \n",
                thd_nb);
         goto disconnect;
     }
@@ -192,9 +192,11 @@ static int get_ble_tree(const int thd_nb, char *mac,
         bl_primary_list  = bl_get_all_primary(&dev_ctx, NULL, &gerr);
     } while (check_gerrors(thd_nb, gerr));
 
+    printf("[THD%d].", thd_nb);
+
     if (bl_primary_list) {
         for (GSList *lp = bl_primary_list; lp; lp = lp->next) {
-            printf("[THD%d].", thd_nb);
+            printf(".");
             bl_primary_t *bl_primary = lp->data;
 
             bl_primary_fprint(file, lp->data);
@@ -290,9 +292,10 @@ int main(int argc, char **argv)
     char *mac          = argv[1];
     thd2_arg.mac       = argv[2];
     char *file_path    = argv[3];
-    thd2_arg.file_path = argv[3];
+    thd2_arg.file_path = argv[4];
+    GError *gerr       = NULL;
 
-    g_thread_try_new("Thread 2", thd2, &thd2_arg, NULL);
+    g_thread_try_new("Thread 2", thd2, &thd2_arg, &gerr);
 
     return get_ble_tree(1, mac, file_path);
 }
