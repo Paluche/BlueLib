@@ -158,7 +158,7 @@ static int get_ble_tree(const int thd_nb, char *mac,
         printf("[THD%d] ERROR: Unable to initalise BlueLib\n", thd_nb);
         return -1;
     }
-    dev_init(&dev_ctx, NULL, mac, "random", 0, TEST_SEC_LEVEL);
+    dev_init(&dev_ctx, NULL, mac, NULL, 0, TEST_SEC_LEVEL);
 
     do {
         ret_int = bl_connect(&dev_ctx);

@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 #define CHAR_DATA_INIT(D)                                                    \
                     if (lp_##D) {                                            \
                         bl_char_##D = lc_##D->data;                          \
-                        bl_char_fprint(file_1, bl_char_1);                   \
+                        bl_char_fprint(file_##D, bl_char_##D);               \
                     } else {                                                 \
                         bl_char_##D = NULL;                                  \
                     }
