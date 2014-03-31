@@ -36,22 +36,22 @@ OBJS         = $(EXE_OBJS) $(BLUELIB_OBJS) $(BLUEZ_OBJS)
 all: $(OBJDIR) $(EXE)
 
 $(EXE): $(OBJS)
-	@echo Linking $@
+	@echo [LK] $@
 	@$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 $(OBJDIR):
 	@mkdir $(OBJDIR)
 
 $(EXE_OBJS): $(OBJDIR)/%.o: %.c
-	@echo $(<F)
+	@echo [CC] $(<F)
 	@$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 $(BLUELIB_OBJS): $(OBJDIR)/%.o: ../../src/%.c
-	@echo $(<F)
+	@echo [CC] $(<F)
 	@$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 $(BLUEZ_OBJS): $(OBJDIR)/%.o: ../../bluez/%.c
-	@echo $(<F)
+	@echo [CC] $(<F)
 	@$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 clean:
