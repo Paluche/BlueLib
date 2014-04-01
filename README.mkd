@@ -2,11 +2,20 @@ Bluelib
 =======
 
 This library offers you the possibility to use the Bluetooth Low Energy in
-your software.
+your software. This library offers a simpler and more diversified interface
+to generate request as a client Bluetooth Low Energy device than blueZ. This
+doesn't replace BlueZ, but helps develop a program using Bluetooth Low
+Energy as client faster.
+
+In v2 you can have a multi-server architecture in one thread. The multi thread
+requests doesn't work yet.
 
 This library use and is based on the BlueZ library which is under the therms
 of the GNU General Public License.
 For more informations: www.bluez.org
+
+
+
 
 Authors
 -----------------------------------------------------------------
@@ -47,4 +56,5 @@ Problem to connect with your device in security level medium/high
 
 To repair a Bluetooth device:
 
-    sudo bluez-simple-agent hci0 [MAC ADRESS of the device in format XX:XX:XX:XX:XX:XX] repair
+    sudo bluez-simple-agent hci0 [MAC ADRESS of the device in format
+    XX:XX:XX:XX:XX:XX] repair
