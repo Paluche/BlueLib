@@ -83,19 +83,16 @@ GQuark bl_error_domain(void)
     }
 
 /******************************** Asserts **********************************/
-static inline int handle_assert(cb_ctx_t *cb_ctx, uint16_t *start_handle,
-                                uint16_t *end_handle,
+static inline int handle_assert(uint16_t *start_handle, uint16_t *end_handle,
                                 bl_primary_t *bl_primary, GError **gerr)
 {
     // Default range
     *start_handle         = 0x0001;
     *end_handle           = 0xffff;
-    cb_ctx->end_handle_cb = 0xffff;
 
     if (bl_primary != NULL) {
         *start_handle         = bl_primary->start_handle;
         *end_handle           = bl_primary->end_handle;
-        cb_ctx->end_handle_cb = bl_primary->end_handle;
     }
 
     if (start_handle > end_handle) {
@@ -429,7 +426,7 @@ GSList *bl_get_included(dev_ctx_t *dev_ctx, bl_primary_t *bl_primary,
     uint16_t start_handle = 0x0001;
     uint16_t end_handle   = 0xffff;
 
-    if (handle_assert(&cb_ctx, &start_handle, &end_handle, bl_primary, gerr))
+    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
         goto exit;
 
     g_mutex_lock(&ble_dev_mtx);
@@ -470,7 +467,7 @@ GSList *bl_get_all_char(dev_ctx_t *dev_ctx, char *uuid_str,
     uint16_t start_handle;
     uint16_t end_handle;
 
-    if (handle_assert(&cb_ctx, &start_handle, &end_handle, bl_primary, gerr))
+    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
         goto exit;
 
     bt_uuid_t *puuid = NULL;
@@ -547,7 +544,7 @@ GSList *bl_get_all_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
     GSList   *ret = NULL;
     uint16_t  start_handle;
     uint16_t  end_handle;
-    cb_ctx_t cb_ctx;
+    cb_ctx_t  cb_ctx;
 
     CLEAR_GERROR;
     BLUELIB_ENTER_GERR;
@@ -564,15 +561,16 @@ GSList *bl_get_all_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
         goto exit;
     }
 
+    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
+        goto exit;
+
     if (end_bl_char) {
         end_handle = end_bl_char->handle - 1;
     } else
         end_handle = 0xffff;
 
-    if (bl_primary) {
-        if (end_handle > bl_primary->end_handle)
+    if (bl_primary && (end_handle > bl_primary->end_handle))
             end_handle = bl_primary->end_handle;
-    }
 
     if (start_handle > end_handle) {
         GError *err = g_error_new(BL_ERROR_DOMAIN, BL_HANDLE_ORDER_ERROR,
@@ -581,6 +579,8 @@ GSList *bl_get_all_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
         PROPAGATE_ERROR;
         goto exit;
     }
+
+    cb_ctx.end_handle_cb = end_handle;
 
     g_mutex_lock(&ble_dev_mtx);
     if (!gatt_discover_char_desc(dev_ctx->attrib, start_handle, end_handle,
@@ -735,7 +735,9 @@ exit:
 GSList *bl_read_char_all(dev_ctx_t *dev_ctx, char *uuid_str,
                          bl_primary_t *bl_primary, GError **gerr)
 {
-    GSList *ret = NULL;
+    GSList  *ret = NULL;
+    uint16_t start_handle;
+    uint16_t end_handle;
     cb_ctx_t cb_ctx;
 
     BLUELIB_ENTER_GERR;
@@ -750,11 +752,7 @@ GSList *bl_read_char_all(dev_ctx_t *dev_ctx, char *uuid_str,
         goto exit;
     }
 
-    // Initialisation to default range.
-    uint16_t start_handle;
-    uint16_t end_handle;
-
-    if (handle_assert(&cb_ctx, &start_handle, &end_handle, bl_primary, gerr))
+    if (handle_assert(&start_handle, &end_handle, bl_primary, gerr))
         goto exit;
 
     bt_uuid_t uuid;
