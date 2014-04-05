@@ -137,6 +137,12 @@ typedef enum {
     SECURITY_LEVEL_HIGH,
 } sec_level_t;
 
+// Choose what type of write do you want to have:
+typedef enum {
+    WRITE_REQ,  // Request, an ACK is received to confirm the write.
+    WRITE_CMD,  // Command: no ACK in return.
+} write_type_t;
+
 /****************************** BlueLib control *****************************/
 // Initializes the global context and the callback thread.
 int bl_init(GError **gerr);
@@ -292,17 +298,13 @@ bl_value_t *bl_read_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
 
 
 /************************** Write characteristic value *********************/
-// Choose what type of write do you want to have:
-#define WRITE_REQ 1 // Request, an ACK is received to confirm the write.
-#define WRITE_CMD 0 // Command: no ACK in return.
-
 // Write a characteristic value by UUID on a primary service
 int bl_write_char(dev_ctx_t *dev_ctx, char *uuid_str, bl_primary_t *bl_primary,
-                  uint8_t *value, size_t size, int type);
+                  uint8_t *value, size_t size, write_type_t type);
 
 // Write a characteristic value by characteristic.
 int bl_write_char_by_char(dev_ctx_t *dev_ctx, bl_char_t *bl_char,
-                          uint8_t *value, size_t size, int type);
+                          uint8_t *value, size_t size, write_type_t  type);
 
 
 /**************************** Write descriptor *****************************/

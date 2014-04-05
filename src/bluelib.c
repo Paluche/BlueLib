@@ -923,7 +923,7 @@ bl_value_t *bl_read_desc_by_char(dev_ctx_t *dev_ctx, bl_char_t *start_bl_char,
 /************************ Write characteristic value ***********************/
 // Write a characteristic by handle.
 static int write_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle, uint8_t *value,
-                        size_t size, int type)
+                        size_t size, write_type_t type)
 {
     int ret;
     cb_ctx_t cb_ctx;
@@ -946,9 +946,9 @@ static int write_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle, uint8_t *value,
     }
 
     g_mutex_lock(&ble_dev_mtx);
-    if (type) {
+    if (type == WRITE_REQ) {
         if (!gatt_write_char(dev_ctx->attrib, handle, value, size,
-                             write_req_cb, NULL)) {
+                             write_req_cb, &cb_ctx)) {
             printf("Error: Unable to send request\n");
             ret = BL_SEND_REQUEST_ERROR;
             g_mutex_unlock(&ble_dev_mtx);
@@ -957,7 +957,7 @@ static int write_by_hnd(dev_ctx_t *dev_ctx, uint16_t handle, uint8_t *value,
         ret = wait_for_cb(&cb_ctx, NULL, NULL);
     } else {
         if (!gatt_write_cmd(dev_ctx->attrib, handle, value, size, NULL,
-                            &cb_ctx)) {
+                            NULL)) {
             printf("Error: Unable to send write cmd\n");
             ret = BL_SEND_REQUEST_ERROR;
             g_mutex_unlock(&ble_dev_mtx);
@@ -974,7 +974,7 @@ exit:
 // Write a characteristic value by UUID on a primary service
 int bl_write_char(dev_ctx_t *dev_ctx, char *uuid_str,
                   bl_primary_t *bl_primary, uint8_t *value, size_t size,
-                  int type)
+                  write_type_t type)
 {
     int ret;
     GError *gerr = NULL;
@@ -1002,7 +1002,7 @@ exit:
 
 // Write a characteristic value by characteristic.
 int bl_write_char_by_char(dev_ctx_t *dev_ctx, bl_char_t *bl_char,
-                          uint8_t *value, size_t size, int type)
+                          uint8_t *value, size_t size, write_type_t type)
 {
     return write_by_hnd(dev_ctx, bl_char->value_handle, value, size, type);
 }
